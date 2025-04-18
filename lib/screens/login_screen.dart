@@ -15,12 +15,19 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isLoading = false;
 
   Future<void> loginUser() async {
+    final identifier = identifierController.text.trim();
+    final password = passwordController.text;
+
+    if (identifier.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Masukkan email/username dan password")),
+      );
+      return;
+    }
+
     setState(() => isLoading = true);
 
-    final response = await ApiService.login(
-      identifierController.text.trim(),
-      passwordController.text,
-    );
+    final response = await ApiService.login(identifier, password);
 
     if (!mounted) return;
     setState(() => isLoading = false);
