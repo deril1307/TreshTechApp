@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:connectivity_plus/connectivity_plus.dart'; // Cek koneksi internet
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:tubes_mobile/services/api_service.dart';
 
 class KategoriSampahScreen extends StatefulWidget {
@@ -14,7 +14,7 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
   List<dynamic> categories = [];
   bool isLoading = true;
   bool isOffline = false;
-  final String baseUrl = "https://web-apb.vercel.app";
+  final String baseUrl = "http://10.0.2.2:5000";
 
   @override
   void initState() {
@@ -22,7 +22,7 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
     _loadCategories();
   }
 
-  /// Memuat kategori dari SharedPreferences jika offline
+  /// Memuat kategori dari SharedPreferences jika user offline
   Future<void> _loadCategories() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? cachedData = prefs.getString('cached_categories');
@@ -62,11 +62,11 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
       if (mounted) {
         setState(() {
           categories = data;
-          isOffline = false; // Berarti data diambil dari API
+          isOffline = false;
         });
       }
     } catch (e) {
-      print("⚠️ Error fetching categories: $e");
+      print(" Error fetching categories: $e");
     } finally {
       if (mounted) {
         setState(() {
@@ -100,7 +100,8 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
                   isOffline
                       ? "Tidak ada data tersimpan. Harap sambungkan ke internet."
                       : "Tidak ada kategori tersedia.",
-                  style: TextStyle(fontSize: 16, color: Colors.red),
+                  style: const TextStyle(fontSize: 16, color: Colors.red),
+                  textAlign: TextAlign.center,
                 ),
               )
               : RefreshIndicator(
@@ -116,20 +117,32 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
 
                     return GestureDetector(
                       onTap: () {
-                        print("Kategori ${category['name']} diklik!");
+                        print("Kategori ${category['name']}");
                       },
                       child: Card(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        elevation: 4,
+                        elevation: 5,
                         margin: const EdgeInsets.symmetric(vertical: 10),
                         child: Padding(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(16),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // Nomor urutan
+                              Text(
+                                "${index + 1}.",
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+
+                              // Gambar
                               ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(10),
                                 child: CachedNetworkImage(
                                   imageUrl: imageUrl ?? "",
                                   width: 80,
@@ -151,24 +164,35 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
                                       ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 16),
+
+                              // Detail Kategori
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      category['name'],
+                                      category['name'] ?? '',
                                       style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: 8),
                                     Text(
-                                      "Point : ${category['point_per_unit']} per ${category['unit']}",
+                                      "Poin: ${category['point_per_unit']} / ${category['unit']}",
                                       style: const TextStyle(
                                         fontSize: 14,
-                                        color: Colors.grey,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.green,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      category['description'] ?? '-',
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.black54,
                                       ),
                                     ),
                                   ],

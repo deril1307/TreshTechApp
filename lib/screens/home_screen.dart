@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tubes_mobile/screens/kategori_sampah_screen.dart';
+import 'package:tubes_mobile/screens/penukaran_poin_screen.dart';
 import 'package:tubes_mobile/screens/profile_screen.dart';
 import 'package:tubes_mobile/utils/connectivity_checker.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
@@ -17,6 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   double saldo = 0;
   int poin = 0;
   bool isLoading = true;
+  String? profilePicture;
 
   @override
   void initState() {
@@ -37,10 +39,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       var userData = await ApiService.getUserData(savedUserId);
+      var userProfile = await ApiService.fetchUserProfile(savedUserId);
       if (mounted) {
         setState(() {
           userId = savedUserId;
           username = userData["username"] ?? savedUsername;
+          profilePicture = userProfile["profile_picture"];
           saldo = double.tryParse(userData["balance"].toString()) ?? savedSaldo;
           poin = int.tryParse(userData["points"].toString()) ?? savedPoin;
           isLoading = false;
@@ -48,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       await SharedPrefs.saveUserData(userId!, username!, saldo, poin);
     } catch (e) {
-      print("⚠️ Gagal mengambil data API, menggunakan data offline.");
+      print(" Gagal mengambil data API, menggunakan data offline.");
       setState(() {
         userId = savedUserId;
         username = savedUsername;
@@ -70,7 +74,14 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.green,
         actions: [
           IconButton(
-            icon: Icon(Icons.account_circle, color: Colors.white, size: 30),
+            icon: CircleAvatar(
+              radius: 15, // Ukuran avatar
+              backgroundImage:
+                  profilePicture != null && profilePicture!.isNotEmpty
+                      ? NetworkImage(profilePicture!) // Gambar profil dari URL
+                      : AssetImage('assets/images/default_avatar.png')
+                          as ImageProvider, // Gambar default jika tidak ada
+            ),
             onPressed: () {
               Navigator.push(
                 context,
@@ -110,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-          ConnectivityChecker(), // Tambahin di sini
+          ConnectivityChecker(), // Tambahkan pengecekan konektivitas
         ],
       ),
     );
@@ -170,7 +181,12 @@ class _HomeScreenState extends State<HomeScreen> {
         childAspectRatio: 1.5, // Card lebih kecil
         children: [
           _buildMenuButton("Riwayat", Icons.history, Colors.blue),
-          _buildMenuButton("Tukar Poin", Icons.card_giftcard, Colors.red),
+          _buildMenuButton("Tukar Poin", Icons.card_giftcard, Colors.red, () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => PenukaranPoinScreen()),
+            );
+          }),
           _buildMenuButton("Tarik Saldo", Icons.attach_money, Colors.green),
           _buildMenuButton(
             "Kategori Sampah",

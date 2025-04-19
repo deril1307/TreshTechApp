@@ -7,7 +7,8 @@ import 'package:dio/dio.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'profile_screen.dart';
 
-const String baseUrl = "https://web-apb.vercel.app";
+// const String baseUrl = "https://web-apb.vercel.app";
+const String baseUrl = "http://10.0.2.2:5000";
 
 class EditProfilePage extends StatefulWidget {
   @override
@@ -59,7 +60,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         profilePictureUrl.value = data["profile_picture"];
       }
     } catch (e) {
-      print("❌ Error mengambil data profil: $e");
+      print("Error mengambil data profil: $e");
     }
   }
 
@@ -74,11 +75,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Future<void> _updateProfile() async {
     if (userId == 0) {
-      _showSnackbar("⚠️ User ID tidak ditemukan", Colors.red);
+      _showSnackbar(" User ID tidak ditemukan", Colors.red);
       return;
     }
     if (isOffline) {
-      _showSnackbar("⚠️ Anda sedang offline", Colors.red);
+      _showSnackbar(" Anda sedang offline", Colors.red);
       return;
     }
 
@@ -101,10 +102,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
       if (!(response.statusCode == 200 &&
           response.data["message"] == "✅ Profil berhasil diperbarui!")) {
-        _showSnackbar("❌ Gagal memperbarui profil", Colors.red);
+        _showSnackbar(" Gagal memperbarui profil", Colors.red);
       }
     } catch (e) {
-      print("❌ Error saat update profil: $e");
+      print(" Error saat update profil: $e");
     }
   }
 

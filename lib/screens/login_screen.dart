@@ -18,10 +18,17 @@ class _LoginScreenState extends State<LoginScreen> {
     final identifier = identifierController.text.trim();
     final password = passwordController.text;
 
-    if (identifier.isEmpty || password.isEmpty) {
+    if (identifier.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Masukkan email/username dan password")),
+        SnackBar(content: Text("Email atau Username belum diisi")),
       );
+      return;
+    }
+
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Password belum diisi")));
       return;
     }
 

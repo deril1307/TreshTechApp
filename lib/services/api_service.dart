@@ -3,9 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart';
 
 class ApiService {
-  static const String baseUrl = "https://web-apb.vercel.app";
+  static const String baseUrl = "http://10.0.2.2:5000";
 
-  // 🟢 Ambil Data Kategori Sampah
   static Future<List<dynamic>> getKategoriSampah() async {
     try {
       final response = await http.get(Uri.parse("$baseUrl/trash/types"));
@@ -23,7 +22,6 @@ class ApiService {
     }
   }
 
-  // 🟢 Register User
   static Future<Map<String, dynamic>> register(
     String username,
     String email,
@@ -41,7 +39,6 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  // 🟢 Login User // tabel users
   static Future<Map<String, dynamic>> login(
     String identifier, // Bisa email atau username
     String password,
@@ -54,25 +51,24 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  // 🟢 Login User // tabels users
   static Future<Map<String, dynamic>> getUserData(String userId) async {
     try {
       final url = "$baseUrl/users/$userId";
-      print("📡 Mengakses API: $url");
+      print(" Mengakses API: $url");
 
       final response = await http.get(Uri.parse(url));
-      print("🔹 Response Status: ${response.statusCode}");
-      print("🔹 Response Body: ${response.body}");
+      print("Response Status: ${response.statusCode}");
+      print("Response Body: ${response.body}");
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else if (response.statusCode == 404) {
-        throw Exception("❌ User tidak ditemukan.");
+        throw Exception(" User tidak ditemukan.");
       } else {
-        throw Exception("❌ Gagal mengambil data user: ${response.statusCode}");
+        throw Exception(" Gagal mengambil data user: ${response.statusCode}");
       }
     } catch (e) {
-      print("⚠️ Error: $e");
+      print(" Error: $e");
       throw Exception("Terjadi kesalahan: $e");
     }
   }
@@ -84,8 +80,8 @@ class ApiService {
         return response.data["data"];
       }
     } catch (e) {
-      print("❌ Error mengambil profil: $e");
+      print(" Error mengambil profil: $e");
     }
-    return {}; // Return data kosong jika gagal
+    return {};
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tubes_mobile/services/api_service.dart';
-import 'package:tubes_mobile/utils/connectivity_checker.dart';
+
 import 'package:tubes_mobile/utils/shared_prefs.dart';
 import 'package:tubes_mobile/screens/login_screen.dart';
 import 'package:tubes_mobile/screens/edit_profile_screen.dart';
@@ -83,11 +83,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           });
         }
       } catch (e) {
-        print("❌ Gagal memuat data user dari API: $e");
+        print(" Gagal memuat data user dari API: $e");
       }
     } else {
       // Jika offline, ambil dari SharedPreferences
-      print("📶 Tidak ada koneksi, memuat dari SharedPreferences...");
+      print(" Tidak ada koneksi, memuat dari SharedPreferences...");
 
       var savedProfile = await SharedPrefs.getUserProfile();
       var savedBalance = await SharedPrefs.getUserBalance();
@@ -180,7 +180,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
           ),
-          ConnectivityChecker(), // Tambahin di sini
+          // Tambahin di sini
         ],
       ),
     );
