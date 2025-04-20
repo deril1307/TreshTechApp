@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
 
 class PenukaranPoinScreen extends StatefulWidget {
@@ -11,10 +12,46 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
   int poin = 0;
   double saldo = 0;
 
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _initNotification();
+  }
+
+  Future<void> _initNotification() async {
+    const AndroidInitializationSettings androidInitializationSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const InitializationSettings initializationSettings =
+        InitializationSettings(android: androidInitializationSettings);
+
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  }
+
+  Future<void> _showSuccessNotification(int jumlahPoin, int saldoTukar) async {
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+          'poin_channel',
+          'Penukaran Poin',
+          channelDescription: 'Notifikasi penukaran poin',
+          importance: Importance.high,
+          priority: Priority.high,
+        );
+
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidDetails,
+    );
+
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      'Penukaran Berhasil!',
+      '$jumlahPoin poin ditukar menjadi Rp$saldoTukar.',
+      notificationDetails,
+    );
   }
 
   Future<void> _loadUserData() async {
@@ -26,35 +63,27 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
     });
   }
 
-  void _tukarPoin() async {
-    if (poin < 10) {
-      _showDialog("Gagal", "Minimal 10 poin untuk penukaran.");
+  void _tukarPoin(int jumlahPoin, int nilaiTukar) async {
+    if (poin < jumlahPoin) {
+      _customDialog(
+        title: "Gagal",
+        content: "Minimal $jumlahPoin poin untuk penukaran ini.",
+        confirmText: "OK",
+      );
       return;
     }
 
-    bool? confirm = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text("Tukar Poin"),
-            content: Text("Tukar 10 poin menjadi Rp1.000?"),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text("Batal"),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text("Tukar"),
-              ),
-            ],
-          ),
+    bool? confirm = await _customDialog(
+      title: "Konfirmasi",
+      content: "Tukar $jumlahPoin poin menjadi Rp$nilaiTukar?",
+      confirmText: "Tukar",
+      cancelText: "Batal",
     );
 
     if (confirm == true) {
       setState(() {
-        poin -= 10;
-        saldo += 1000;
+        poin -= jumlahPoin;
+        saldo += nilaiTukar;
       });
 
       await SharedPrefs.saveUserData(
@@ -64,24 +93,65 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
         poin,
       );
 
-      _showDialog("Berhasil", "Poin berhasil ditukar menjadi saldo.");
+      _customDialog(
+        title: "Berhasil",
+        content: "$jumlahPoin poin berhasil ditukar menjadi Rp$nilaiTukar.",
+        confirmText: "OK",
+      );
+
+      // Tampilkan notifikasi lokal
+      _showSuccessNotification(jumlahPoin, nilaiTukar);
     }
   }
 
-  void _showDialog(String title, String content) {
-    showDialog(
+  Future<bool?> _customDialog({
+    required String title,
+    required String content,
+    required String confirmText,
+    String? cancelText,
+  }) {
+    return showDialog<bool>(
       context: context,
       builder:
-          (_) => AlertDialog(
-            title: Text(title),
-            content: Text(content),
+          (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            title: Text(
+              title,
+              style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+            ),
+            content: Text(content, style: GoogleFonts.poppins()),
             actions: [
+              if (cancelText != null)
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(cancelText, style: GoogleFonts.poppins()),
+                ),
               TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text("OK"),
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(
+                  confirmText,
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
+    );
+  }
+
+  Widget _buildTukarButton(int poinTukar, int saldoTukar) {
+    return ElevatedButton(
+      onPressed: () => _tukarPoin(poinTukar, saldoTukar),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.green.shade600,
+        minimumSize: Size(double.infinity, 50),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      child: Text(
+        "Tukar $poinTukar Poin ke Rp$saldoTukar",
+        style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+      ),
     );
   }
 
@@ -90,28 +160,60 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Penukaran Poin", style: GoogleFonts.poppins()),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.green.shade700,
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Text("Poin Anda: $poin", style: GoogleFonts.poppins(fontSize: 20)),
-            SizedBox(height: 10),
-            Text(
-              "Saldo Anda: Rp ${saldo.toStringAsFixed(2)}",
-              style: GoogleFonts.poppins(fontSize: 18),
-            ),
-            SizedBox(height: 30),
-            ElevatedButton.icon(
-              icon: Icon(Icons.card_giftcard),
-              label: Text("Tukar 10 Poin ke Rp1.000"),
-              onPressed: _tukarPoin,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                textStyle: GoogleFonts.poppins(fontSize: 16),
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 20,
+                  horizontal: 16,
+                ),
+                child: Column(
+                  children: [
+                    Text("Poin Anda", style: GoogleFonts.poppins(fontSize: 16)),
+                    Text(
+                      "$poin",
+                      style: GoogleFonts.poppins(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green.shade700,
+                      ),
+                    ),
+                    SizedBox(height: 15),
+                    Divider(),
+                    SizedBox(height: 15),
+                    Text(
+                      "Saldo Anda",
+                      style: GoogleFonts.poppins(fontSize: 16),
+                    ),
+                    Text(
+                      "Rp ${saldo.toStringAsFixed(0)}",
+                      style: GoogleFonts.poppins(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange.shade800,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
+            SizedBox(height: 30),
+            _buildTukarButton(10, 1000),
+            SizedBox(height: 15),
+            _buildTukarButton(50, 2000),
+            SizedBox(height: 15),
+            _buildTukarButton(100, 5000),
+            SizedBox(height: 15),
+            _buildTukarButton(200, 15000),
           ],
         ),
       ),

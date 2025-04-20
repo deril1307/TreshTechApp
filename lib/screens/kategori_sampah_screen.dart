@@ -117,6 +117,7 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
 
                     return GestureDetector(
                       onTap: () {
+                        Navigator.pop(context, category);
                         print("Kategori ${category['name']}");
                       },
                       child: Card(
