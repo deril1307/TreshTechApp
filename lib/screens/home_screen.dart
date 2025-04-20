@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:tubes_mobile/screens/kategori_sampah_screen.dart';
 import 'package:tubes_mobile/screens/penukaran_poin_screen.dart';
 import 'package:tubes_mobile/screens/setor_sampah_screen.dart';
+import 'package:tubes_mobile/screens/tarik_saldo_screen.dart';
 import 'package:tubes_mobile/screens/profile_screen.dart';
 import 'package:tubes_mobile/utils/connectivity_checker.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
@@ -235,6 +236,12 @@ class _HomeScreenState extends State<HomeScreen> {
             "Tarik Saldo",
             FontAwesomeIcons.wallet,
             Colors.green,
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => TarikSaldoScreen()),
+              );
+            },
           ),
           _buildMenuButton(
             "Kategori Sampah",
