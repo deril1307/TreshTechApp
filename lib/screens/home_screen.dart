@@ -9,6 +9,7 @@ import 'package:tubes_mobile/utils/connectivity_checker.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
 import 'package:tubes_mobile/services/api_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:tubes_mobile/screens/riwayat_screen.dart'; // Pastikan import RiwayatScreen
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -225,7 +226,19 @@ class _HomeScreenState extends State<HomeScreen> {
           15,
         ), // Menambahkan padding agar grid lebih teratur
         children: [
-          _buildMenuButton("Riwayat", FontAwesomeIcons.history, Colors.blue),
+          _buildMenuButton(
+            "Riwayat",
+            FontAwesomeIcons.history,
+            Colors.blue,
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RiwayatScreen(),
+                ), // Navigasi ke RiwayatScreen
+              );
+            },
+          ),
           _buildMenuButton("Tukar Poin", FontAwesomeIcons.gift, Colors.red, () {
             Navigator.push(
               context,
@@ -304,16 +317,14 @@ class _HomeScreenState extends State<HomeScreen> {
               size: 36,
               color: color,
             ), // Menambah ukuran ikon untuk terlihat lebih jelas
-            SizedBox(height: 10), // Jarak lebih besar antara ikon dan teks
+            SizedBox(height: 10), // Jarak antara ikon dan teks
             Text(
               title,
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
-                fontSize: 14, // Meningkatkan ukuran teks agar lebih terbaca
-                fontWeight:
-                    FontWeight
-                        .w600, // Mengubah ke berat font yang lebih konsisten
-                color: Colors.black87,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: color,
               ),
             ),
           ],
