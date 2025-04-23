@@ -7,7 +7,6 @@ import 'package:dio/dio.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'profile_screen.dart';
 
-// const String baseUrl = "https://web-apb.vercel.app";
 const String baseUrl = "http://10.0.2.2:5000";
 
 class EditProfilePage extends StatefulWidget {
@@ -16,6 +15,7 @@ class EditProfilePage extends StatefulWidget {
 }
 
 class _EditProfilePageState extends State<EditProfilePage> {
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController fullNameController = TextEditingController();
   final TextEditingController phoneNumberController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
@@ -74,19 +74,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> _updateProfile() async {
-    if (userId == 0) {
-      _showSnackbar(" User ID tidak ditemukan", Colors.red);
-      return;
-    }
-    if (isOffline) {
-      _showSnackbar(" Anda sedang offline", Colors.red);
+    if (!_formKey.currentState!.validate()) {
+      _showSnackbar("Harap perbaiki data yang salah", Colors.red);
       return;
     }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => ProfileScreen()),
-    );
+    if (userId == 0) {
+      _showSnackbar("User ID tidak ditemukan", Colors.red);
+      return;
+    }
+
+    if (isOffline) {
+      _showSnackbar("Anda sedang offline", Colors.red);
+      return;
+    }
 
     try {
       var formData = FormData.fromMap({
@@ -100,12 +101,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
       var response = await Dio().put("$baseUrl/update-profile", data: formData);
 
-      if (!(response.statusCode == 200 &&
-          response.data["message"] == "✅ Profil berhasil diperbarui!")) {
-        _showSnackbar(" Gagal memperbarui profil", Colors.red);
+      if (response.statusCode == 200 &&
+          response.data["message"] == "✅ Profil berhasil diperbarui!") {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => ProfileScreen()),
+        );
+      } else {
+        _showSnackbar("Gagal memperbarui profil", Colors.red);
       }
     } catch (e) {
-      print(" Error saat update profil: $e");
+      print("Error saat update profil: $e");
+      _showSnackbar("Terjadi kesalahan saat memperbarui", Colors.red);
     }
   }
 
@@ -142,106 +149,156 @@ class _EditProfilePageState extends State<EditProfilePage> {
           }
           return SingleChildScrollView(
             padding: EdgeInsets.all(20.0),
-            child: Column(
-              children: [
-                if (isOffline) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.cloud_off, color: Colors.red, size: 24),
-                      SizedBox(width: 8),
-                      Text(
-                        "Anda sedang offline",
-                        style: TextStyle(color: Colors.red, fontSize: 16),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 10),
-                ],
-                Center(
-                  child: Stack(
-                    children: [
-                      ValueListenableBuilder<File?>(
-                        valueListenable: _image,
-                        builder: (context, image, child) {
-                          return CircleAvatar(
-                            radius: 60,
-                            backgroundImage:
-                                image != null
-                                    ? FileImage(image)
-                                    : (profilePictureUrl.value != null
-                                            ? CachedNetworkImageProvider(
-                                              profilePictureUrl.value!,
-                                            )
-                                            : AssetImage(
-                                              "assets/default_profile.png",
-                                            ))
-                                        as ImageProvider,
-                            backgroundColor: Colors.grey[200],
-                          );
-                        },
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: CircleAvatar(
-                          backgroundColor: Colors.green,
-                          child: IconButton(
-                            icon: Icon(Icons.camera_alt, color: Colors.white),
-                            onPressed: _pickImage,
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  if (isOffline) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.cloud_off, color: Colors.red, size: 24),
+                        SizedBox(width: 8),
+                        Text(
+                          "Anda sedang offline",
+                          style: TextStyle(color: Colors.red, fontSize: 16),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 10),
+                  ],
+                  Center(
+                    child: Stack(
+                      children: [
+                        ValueListenableBuilder<File?>(
+                          valueListenable: _image,
+                          builder: (context, image, child) {
+                            return CircleAvatar(
+                              radius: 60,
+                              backgroundImage:
+                                  image != null
+                                      ? FileImage(image)
+                                      : (profilePictureUrl.value != null
+                                              ? CachedNetworkImageProvider(
+                                                profilePictureUrl.value!,
+                                              )
+                                              : AssetImage(
+                                                "assets/default_profile.png",
+                                              ))
+                                          as ImageProvider,
+                              backgroundColor: Colors.grey[200],
+                            );
+                          },
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: CircleAvatar(
+                            backgroundColor: Colors.green,
+                            child: IconButton(
+                              icon: Icon(Icons.camera_alt, color: Colors.white),
+                              onPressed: _pickImage,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 20),
-                _buildTextField(fullNameController, "Nama Lengkap"),
-                _buildTextField(phoneNumberController, "Nomor Telepon"),
-                _buildTextField(addressController, "Alamat"),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _updateProfile,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                      ],
                     ),
-                    padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                   ),
-                  child: Text(
-                    "Simpan Perubahan",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  SizedBox(height: 20),
+                  _buildValidatedTextField(
+                    controller: fullNameController,
+                    label: "Nama Lengkap",
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty)
+                        return "Nama tidak boleh kosong";
+                      if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(value))
+                        return "Nama hanya boleh huruf";
+                      return null;
+                    },
                   ),
-                ),
-              ],
+                  _buildValidatedTextField(
+                    controller: phoneNumberController,
+                    label: "Nomor Telepon",
+                    keyboardType: TextInputType.phone,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return "Nomor telepon tidak boleh kosong";
+                      }
+                      if (!RegExp(r'^\d+$').hasMatch(value)) {
+                        return "Nomor hanya boleh angka";
+                      }
+                      if (value.length < 12) {
+                        return "Nomor minimal 12 digit";
+                      }
+                      return null;
+                    },
+                  ),
+                  _buildValidatedTextField(
+                    controller: addressController,
+                    label: "Alamat",
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty)
+                        return "Alamat tidak boleh kosong";
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _updateProfile,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 50,
+                        vertical: 15,
+                      ),
+                    ),
+                    child: Text(
+                      "Simpan Perubahan",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
       ),
     );
   }
-}
 
-Widget _buildTextField(TextEditingController controller, String label) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 10.0),
-    child: TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: Colors.green[700]),
-        filled: true,
-        fillColor: Colors.white,
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: BorderSide(color: Colors.green),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: BorderSide(color: Colors.green, width: 2),
+  Widget _buildValidatedTextField({
+    required TextEditingController controller,
+    required String label,
+    TextInputType keyboardType = TextInputType.text,
+    required String? Function(String?) validator,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10.0),
+      child: TextFormField(
+        controller: controller,
+        validator: validator,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.green[700]),
+          filled: true,
+          fillColor: Colors.white,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide(color: Colors.green),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide(color: Colors.green, width: 2),
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }

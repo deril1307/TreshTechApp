@@ -61,7 +61,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           setState(() {
             username =
                 (userProfile["full_name"]?.isEmpty ?? true)
-                    ? "Silahkan Input"
+                    ? "New Users"
                     : userProfile["full_name"];
             phoneNumber =
                 (userProfile["phone_number"]?.isEmpty ?? true)
@@ -95,7 +95,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (mounted) {
         setState(() {
-          username = savedProfile?["full_name"] ?? "Silahkan Input";
+          username = savedProfile?["full_name"] ?? "New Users";
           phoneNumber = savedProfile?["phone_number"] ?? "Belum diinput";
           address = savedProfile?["address"] ?? "Belum diinput";
           profilePicture = savedProfile?["profile_picture"];
@@ -151,7 +151,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                             Text(
-                              "Pahlawan Daur Ulang 🌱",
+                              "",
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.green[700],

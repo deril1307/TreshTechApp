@@ -46,12 +46,23 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
       android: androidDetails,
     );
 
+    // Show the notification
     await flutterLocalNotificationsPlugin.show(
       0,
       'Penukaran Berhasil!',
       '$jumlahPoin poin ditukar menjadi Rp$saldoTukar.',
       notificationDetails,
     );
+
+    // Save notification to SharedPreferences
+    final notificationData = {
+      'kegiatan': 'Penukaran Poin',
+      'jenis': 'Penukaran',
+      'tanggal': DateTime.now().toString(),
+      'poin': jumlahPoin.toString(),
+      'saldo': saldoTukar.toString(),
+    };
+    await SharedPrefs.tambahRiwayat(notificationData);
   }
 
   Future<void> _loadUserData() async {
@@ -99,7 +110,7 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
         confirmText: "OK",
       );
 
-      // Tampilkan notifikasi lokal
+      // Show success notification and save it to SharedPreferences
       _showSuccessNotification(jumlahPoin, nilaiTukar);
     }
   }
