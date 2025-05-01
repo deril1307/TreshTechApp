@@ -114,6 +114,20 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
           'Permintaan tarik saldo sebesar Rp $formattedAmount telah dikirim.';
 
       await _showNotification('Tarik Saldo Berhasil', successMessage);
+
+      // Prepare notification data in the desired format
+      final notificationData = {
+        'kegiatan': 'Penarikan Saldo',
+        'jenis': 'Tarik Saldo',
+        'tanggal': DateTime.now().toString(),
+        'saldo': formattedAmount,
+      };
+
+      // Save the notification data to SharedPreferences
+      await SharedPrefs.tambahRiwayat(
+        notificationData,
+      ); // Save notification to history
+
       _showSnackbar(successMessage);
     } else {
       _showSnackbar('Saldo tidak cukup untuk tarik Rp $_selectedAmount.');

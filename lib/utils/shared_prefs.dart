@@ -3,10 +3,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class SharedPrefs {
   static SharedPreferences? _prefs;
+
+  // Initialize SharedPreferences
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
   }
 
+  // Check if SharedPreferences is initialized
   static bool _isInitialized() {
     if (_prefs == null) {
       print(
@@ -21,7 +24,7 @@ class SharedPrefs {
   static Future<void> saveUserId(String userId) async {
     if (!_isInitialized()) return;
     await _prefs!.setString("user_id", userId);
-    print("✅ User ID disimpan: $userId");
+    print("User ID disimpan: $userId");
   }
 
   static String? getUserId() {
@@ -32,7 +35,7 @@ class SharedPrefs {
   static Future<void> saveUsername(String username) async {
     if (!_isInitialized()) return;
     await _prefs!.setString("username", username);
-    print("✅ Username disimpan: $username");
+    print("Username disimpan: $username");
   }
 
   static String? getUsername() {
@@ -43,7 +46,7 @@ class SharedPrefs {
   static Future<void> saveSaldo(double saldo) async {
     if (!_isInitialized()) return;
     await _prefs!.setDouble("saldo", saldo);
-    print("✅ Saldo disimpan: $saldo");
+    print("Saldo disimpan: $saldo");
   }
 
   static double getSaldo() {
@@ -54,7 +57,7 @@ class SharedPrefs {
   static Future<void> savePoin(int poin) async {
     if (!_isInitialized()) return;
     await _prefs!.setInt("poin", poin);
-    print("✅ Poin disimpan: $poin");
+    print("Poin disimpan: $poin");
   }
 
   static int getPoin() {
@@ -66,7 +69,7 @@ class SharedPrefs {
     if (!_isInitialized()) return;
     String jsonString = jsonEncode(userProfile);
     await _prefs!.setString("user_profile", jsonString);
-    print("✅ Profil pengguna disimpan.");
+    print("Profil pengguna disimpan.");
   }
 
   static Map<String, dynamic>? getUserProfile() {
@@ -118,8 +121,10 @@ class SharedPrefs {
     print("🗑 Semua data user dihapus dari SharedPreferences");
   }
 
-  // RIWAYAT
+  // Riwayat Notifikasi
   static const _keyRiwayat = 'riwayat_data';
+
+  // Menambahkan riwayat
   static Future<void> tambahRiwayat(Map<String, String> item) async {
     if (!_isInitialized()) return;
     final List<String> existingData = _prefs!.getStringList(_keyRiwayat) ?? [];
@@ -128,21 +133,33 @@ class SharedPrefs {
     print("Riwayat baru ditambahkan.");
   }
 
-  // Mendapatkan riwayat dengan data lengkap (mengkonversi Map<String, dynamic> menjadi Map<String, String>)
+  // Mendapatkan riwayat
   static List<Map<String, String>> getRiwayat() {
     if (!_isInitialized()) return [];
     final List<String> data = _prefs!.getStringList(_keyRiwayat) ?? [];
     return data.map((e) {
       final dynamic decoded = jsonDecode(e);
-      // Cast Map<String, dynamic> to Map<String, String>
       return Map<String, String>.from(decoded as Map<String, dynamic>);
     }).toList();
   }
 
-  // Menghapus riwayat
-  static Future<void> clearRiwayat() async {
+  // Method to remove a history item by index
+  static Future<void> hapusRiwayatByIndex(int index) async {
+    if (!_isInitialized()) return;
+    final List<String> existingData = _prefs!.getStringList(_keyRiwayat) ?? [];
+    if (index >= 0 && index < existingData.length) {
+      existingData.removeAt(index);
+      await _prefs!.setStringList(_keyRiwayat, existingData);
+      print("Riwayat pada index $index dihapus.");
+    } else {
+      print("Index tidak valid.");
+    }
+  }
+
+  // Method to clear all history
+  static Future<void> hapusSemuaRiwayat() async {
     if (!_isInitialized()) return;
     await _prefs!.remove(_keyRiwayat);
-    print("🗑 Riwayat dihapus.");
+    print("🗑 Semua riwayat dihapus.");
   }
 }

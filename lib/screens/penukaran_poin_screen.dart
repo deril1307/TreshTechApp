@@ -173,59 +173,90 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
         title: Text("Penukaran Poin", style: GoogleFonts.poppins()),
         backgroundColor: Colors.green.shade700,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 20,
-                  horizontal: 16,
+      body: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.green.shade100, Colors.green.shade50],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Card(
+                  elevation: 6,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  shadowColor: Colors.green.withOpacity(0.3),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 30,
+                      horizontal: 20,
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.account_balance_wallet_rounded,
+                          size: 50,
+                          color: Colors.green.shade600,
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          "Poin Anda",
+                          style: GoogleFonts.poppins(fontSize: 18),
+                        ),
+                        Text(
+                          "$poin",
+                          style: GoogleFonts.poppins(
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade700,
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        Divider(thickness: 1.5),
+                        SizedBox(height: 20),
+                        Text(
+                          "Saldo Anda",
+                          style: GoogleFonts.poppins(fontSize: 18),
+                        ),
+                        Text(
+                          "Rp ${saldo.toStringAsFixed(0)}",
+                          style: GoogleFonts.poppins(
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange.shade800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                child: Column(
-                  children: [
-                    Text("Poin Anda", style: GoogleFonts.poppins(fontSize: 16)),
-                    Text(
-                      "$poin",
-                      style: GoogleFonts.poppins(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green.shade700,
-                      ),
-                    ),
-                    SizedBox(height: 15),
-                    Divider(),
-                    SizedBox(height: 15),
-                    Text(
-                      "Saldo Anda",
-                      style: GoogleFonts.poppins(fontSize: 16),
-                    ),
-                    Text(
-                      "Rp ${saldo.toStringAsFixed(0)}",
-                      style: GoogleFonts.poppins(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange.shade800,
-                      ),
-                    ),
-                  ],
+                SizedBox(height: 40),
+                Text(
+                  "Tukar Poin",
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green.shade900,
+                  ),
                 ),
-              ),
+                SizedBox(height: 20),
+                _buildTukarButton(10, 1000),
+                SizedBox(height: 15),
+                _buildTukarButton(50, 2000),
+                SizedBox(height: 15),
+                _buildTukarButton(100, 5000),
+                SizedBox(height: 15),
+                _buildTukarButton(200, 15000),
+              ],
             ),
-            SizedBox(height: 30),
-            _buildTukarButton(10, 1000),
-            SizedBox(height: 15),
-            _buildTukarButton(50, 2000),
-            SizedBox(height: 15),
-            _buildTukarButton(100, 5000),
-            SizedBox(height: 15),
-            _buildTukarButton(200, 15000),
-          ],
+          ),
         ),
       ),
     );

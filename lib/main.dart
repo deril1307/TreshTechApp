@@ -4,8 +4,8 @@ import 'package:tubes_mobile/screens/login_screen.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Pastikan Flutter sudah siap
-  await SharedPrefs.init(); // Inisialisasi SharedPreferences
+  WidgetsFlutterBinding.ensureInitialized();
+  await SharedPrefs.init();
   runApp(MyApp());
 }
 
@@ -14,16 +14,14 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: FutureBuilder<String?>(
-        future: Future.value(SharedPrefs.getUserId()), // Ambil User ID
+        future: Future.value(SharedPrefs.getUserId()),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            ); // Tampilkan loading
+            return Scaffold(body: Center(child: CircularProgressIndicator()));
           } else {
             return snapshot.data == null
                 ? LoginScreen()
-                : HomeScreen(); // Redirect ke Login atau Home
+                : HomeScreen(key: HomeScreen.homeScreenKey); // Pass the key
           }
         },
       ),

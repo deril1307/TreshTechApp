@@ -7,7 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'profile_screen.dart';
 
-const String baseUrl = "http://10.0.2.2:5000";
+const String baseUrl = "http://192.168.43.134:5000";
 
 class EditProfilePage extends StatefulWidget {
   @override
@@ -65,11 +65,38 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
+    // Show a dialog to let the user choose between Camera and Gallery
+    final ImagePicker picker = ImagePicker();
+    final pickedFile = await showDialog<File>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text("Pilih Sumber Gambar"),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () async {
+                  final file = await picker.pickImage(
+                    source: ImageSource.camera,
+                  );
+                  Navigator.of(context).pop(File(file!.path));
+                },
+                child: Text("Kamera"),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final file = await picker.pickImage(
+                    source: ImageSource.gallery,
+                  );
+                  Navigator.of(context).pop(File(file!.path));
+                },
+                child: Text("Galeri"),
+              ),
+            ],
+          ),
     );
+
     if (pickedFile != null) {
-      _image.value = File(pickedFile.path);
+      _image.value = pickedFile;
     }
   }
 
@@ -102,7 +129,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       var response = await Dio().put("$baseUrl/update-profile", data: formData);
 
       if (response.statusCode == 200 &&
-          response.data["message"] == "✅ Profil berhasil diperbarui!") {
+          response.data["message"] == "Profil berhasil diperbarui!") {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => ProfileScreen()),

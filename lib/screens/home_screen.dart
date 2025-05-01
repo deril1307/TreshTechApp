@@ -9,9 +9,13 @@ import 'package:tubes_mobile/utils/connectivity_checker.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
 import 'package:tubes_mobile/services/api_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:tubes_mobile/screens/riwayat_screen.dart'; // Pastikan import RiwayatScreen
+import 'package:tubes_mobile/screens/riwayat_screen.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
+  static final GlobalKey<_HomeScreenState> homeScreenKey =
+      GlobalKey<_HomeScreenState>();
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -31,40 +35,69 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUser() async {
+    // Ambil data user dari SharedPrefs
     String? savedUserId = SharedPrefs.getUserId();
     String? savedUsername = await SharedPrefs.getUsername();
     double savedSaldo = SharedPrefs.getSaldo();
     int savedPoin = SharedPrefs.getPoin();
 
+    // Jika data user tidak ada, langsung set loading ke false
     if (savedUserId == null) {
       setState(() => isLoading = false);
       return;
     }
 
-    try {
-      var userData = await ApiService.getUserData(savedUserId);
-      var userProfile = await ApiService.fetchUserProfile(savedUserId);
-      if (mounted) {
+    // Jika data user sudah ada di SharedPrefs, langsung set state tanpa memanggil API
+    setState(() {
+      userId = savedUserId;
+      username = savedUsername ?? "Default Username";
+      saldo = savedSaldo;
+      poin = savedPoin;
+      isLoading = false;
+    });
+
+    if (savedUsername == null || savedSaldo == null || savedPoin == null) {
+      try {
+        var userData = await ApiService.getUserData(savedUserId);
+        var userProfile = await ApiService.fetchUserProfile(savedUserId);
+
+        if (mounted) {
+          setState(() {
+            userId = savedUserId;
+            username = userData["username"] ?? savedUsername;
+            profilePicture = userProfile["profile_picture"];
+            saldo =
+                double.tryParse(userData["balance"].toString()) ?? savedSaldo;
+            poin = int.tryParse(userData["points"].toString()) ?? savedPoin;
+            isLoading = false;
+          });
+        }
+
+        // Simpan data terbaru ke SharedPrefs
+        await SharedPrefs.saveUserData(userId!, username!, saldo, poin);
+
+        // Ambil saldo dan poin terbaru dari SharedPrefs
+        saldo = await SharedPrefs.getSaldo();
+        poin = await SharedPrefs.getPoin();
+
+        print("Saldo terbaru: $saldo, Poin terbaru: $poin");
+      } catch (e) {
+        print("Menggunakan data offline.");
+        // Jika gagal ambil data dari API, gunakan data dari SharedPrefs
         setState(() {
           userId = savedUserId;
-          username = userData["username"] ?? savedUsername;
-          profilePicture = userProfile["profile_picture"];
-          saldo = double.tryParse(userData["balance"].toString()) ?? savedSaldo;
-          poin = int.tryParse(userData["points"].toString()) ?? savedPoin;
+          username = savedUsername;
+          saldo = savedSaldo;
+          poin = savedPoin;
           isLoading = false;
         });
       }
-      await SharedPrefs.saveUserData(userId!, username!, saldo, poin);
-    } catch (e) {
-      print("menggunakan data offline.");
-      setState(() {
-        userId = savedUserId;
-        username = savedUsername;
-        saldo = savedSaldo;
-        poin = savedPoin;
-        isLoading = false;
-      });
     }
+  }
+
+  // Function to handle refresh
+  Future<void> _refreshData() async {
+    await _loadUser(); // Reload user data
   }
 
   @override
@@ -76,18 +109,26 @@ class _HomeScreenState extends State<HomeScreen> {
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 24),
         ),
         backgroundColor: Colors.green,
+        leading: IconButton(
+          icon: Icon(Icons.notifications, color: Colors.white),
+          onPressed: () {
+            // Navigate to RiwayatScreen when the notification icon is clicked
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => RiwayatScreen()),
+            );
+          },
+        ),
         actions: [
           IconButton(
             icon: CircleAvatar(
-              radius: 18, // Ukuran avatar yang lebih besar
+              radius: 18,
               backgroundImage:
                   profilePicture != null && profilePicture!.isNotEmpty
-                      ? NetworkImage(profilePicture!) // Gambar profil dari URL
-                      : AssetImage('assets/images/default_avatar.png')
-                          as ImageProvider, // Gambar default jika tidak ada
-              backgroundColor:
-                  Colors
-                      .white, // Memberikan latar belakang putih di sekitar avatar
+                      ? NetworkImage(profilePicture!)
+                      : AssetImage('assets/images/default_profile.png')
+                          as ImageProvider, // Default image if no profile picture
+              backgroundColor: Colors.white, // White background for the avatar
             ),
             onPressed: () {
               Navigator.push(
@@ -96,51 +137,57 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          SizedBox(width: 10), // Memberikan jarak antar ikon di AppBar
+          SizedBox(width: 10), // Add spacing between icons in the AppBar
         ],
       ),
       body: Stack(
         children: [
-          isLoading
-              ? Center(child: CircularProgressIndicator())
-              : Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 15, // Menambah jarak vertikal lebih banyak
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(height: 20),
-                    Text(
-                      username != null
-                          ? "Selamat Datang, $username!"
-                          : "Selamat Datang!",
-                      style: GoogleFonts.poppins(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green[800],
+          // Wrap the body with RefreshIndicator
+          RefreshIndicator(
+            onRefresh: _refreshData,
+            child:
+                isLoading
+                    ? Center(child: CircularProgressIndicator())
+                    : Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 15, // Add more vertical spacing
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(height: 20),
+                          Text(
+                            username != null
+                                ? "Selamat Datang, $username!"
+                                : "Selamat Datang!",
+                            style: GoogleFonts.poppins(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green[800],
+                            ),
+                          ),
+                          SizedBox(height: 30), // Add spacing after greeting
+                          _buildBalanceCard(), // Add balance card widget
+                          SizedBox(
+                            height: 40,
+                          ), // Add more spacing between components
+                          _buildMenuGrid(), // Display the menu grid
+                        ],
                       ),
                     ),
-                    SizedBox(height: 30), // Menambah jarak setelah greeting
-                    _buildBalanceCard(), // Menambahkan card saldo
-                    SizedBox(
-                      height: 40,
-                    ), // Menambah jarak lebih banyak antar komponen
-                    _buildMenuGrid(), // Menampilkan menu grid
-                  ],
-                ),
-              ),
-          ConnectivityChecker(), // Menampilkan status koneksi
+          ),
+          ConnectivityChecker(), // Display connection status
         ],
       ),
     );
   }
 
+  // Balance card showing the user's balance and points
   Widget _buildBalanceCard() {
     return Container(
-      width: double.infinity, // Card memenuhi lebar layar
-      margin: EdgeInsets.symmetric(vertical: 20), // Margin vertikal untuk card
+      width: double.infinity,
+      margin: EdgeInsets.symmetric(vertical: 20),
       padding: EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -160,7 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Judul Card
+          // Card title
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -177,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           SizedBox(height: 15),
 
-          // Saldo
+          // Balance
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -194,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           SizedBox(height: 10),
 
-          // Poin
+          // Points
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -214,39 +261,24 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Menu kecil untuk navigasi
+  // Grid menu for navigation similar to Gojek's interface
   Widget _buildMenuGrid() {
     return Expanded(
       child: GridView.count(
-        crossAxisCount: 2,
-        crossAxisSpacing: 15,
-        mainAxisSpacing: 15,
-        childAspectRatio: 1.5,
-        padding: EdgeInsets.all(
-          15,
-        ), // Menambahkan padding agar grid lebih teratur
+        crossAxisCount: 4, // More columns like in Gojek
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 0.9, // Higher than width for more height
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 20),
         children: [
-          _buildMenuButton(
-            "Riwayat",
-            FontAwesomeIcons.history,
-            Colors.blue,
-            () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => RiwayatScreen(),
-                ), // Navigasi ke RiwayatScreen
-              );
-            },
-          ),
-          _buildMenuButton("Tukar Poin", FontAwesomeIcons.gift, Colors.red, () {
+          _buildMiniMenuButton("Tukar", FontAwesomeIcons.gift, Colors.red, () {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => PenukaranPoinScreen()),
             );
           }),
-          _buildMenuButton(
-            "Tarik Saldo",
+          _buildMiniMenuButton(
+            "Tarik",
             FontAwesomeIcons.wallet,
             Colors.green,
             () {
@@ -256,8 +288,8 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          _buildMenuButton(
-            "Kategori Sampah",
+          _buildMiniMenuButton(
+            "Kategori",
             FontAwesomeIcons.trashAlt,
             Colors.purple,
             () {
@@ -267,8 +299,8 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          _buildMenuButton(
-            "Setor Sampah",
+          _buildMiniMenuButton(
+            "Setor",
             FontAwesomeIcons.recycle,
             Colors.orange,
             () {
@@ -283,52 +315,28 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Membuat tombol menu dengan desain yang lebih menarik
-  Widget _buildMenuButton(
+  // Mini button widget for each menu item
+  Widget _buildMiniMenuButton(
     String title,
     IconData icon,
-    Color color, [
-    VoidCallback? onTap,
-  ]) {
+    Color color,
+    Function onTap,
+  ) {
     return GestureDetector(
-      onTap: onTap ?? () => print("Navigasi ke halaman $title"),
-      child: Container(
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12), // Perbaikan border radius
-          border: Border.all(
-            color: color,
-            width: 2,
-          ), // Menambah ketebalan border
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 6, // Menambahkan blur lebih besar untuk efek 3D
-              offset: Offset(0, 4),
+      onTap: () => onTap(),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: color, size: 40),
+          SizedBox(height: 8),
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 36,
-              color: color,
-            ), // Menambah ukuran ikon untuk terlihat lebih jelas
-            SizedBox(height: 10), // Jarak antara ikon dan teks
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
