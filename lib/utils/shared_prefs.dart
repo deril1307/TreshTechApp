@@ -27,51 +27,60 @@ class SharedPrefs {
     print("User ID disimpan: $userId");
   }
 
+  // mengambil id pengguna
   static String? getUserId() {
     if (!_isInitialized()) return null;
     return _prefs!.getString("user_id");
   }
 
+  // mennyimpan id pengguna
   static Future<void> saveUsername(String username) async {
     if (!_isInitialized()) return;
     await _prefs!.setString("username", username);
-    print("Username disimpan: $username");
+    // print("Username disimpan: $username");
   }
 
+  // mengambil username
   static String? getUsername() {
     if (!_isInitialized()) return null;
     return _prefs!.getString("username");
   }
 
+  // menyimpan salfo
   static Future<void> saveSaldo(double saldo) async {
     if (!_isInitialized()) return;
     await _prefs!.setDouble("saldo", saldo);
-    print("Saldo disimpan: $saldo");
+    // print("Saldo disimpan: $saldo");
   }
 
+  // mengambil saldo
   static double getSaldo() {
     if (!_isInitialized()) return 0.0;
     return _prefs!.getDouble("saldo") ?? 0.0;
   }
 
+  // menyimpan poin
   static Future<void> savePoin(int poin) async {
     if (!_isInitialized()) return;
     await _prefs!.setInt("poin", poin);
-    print("Poin disimpan: $poin");
+    // print("Poin disimpan: $poin");
   }
 
+  // mengambil poin
   static int getPoin() {
     if (!_isInitialized()) return 0;
     return _prefs!.getInt("poin") ?? 0;
   }
 
+  // menyimpan seluruh profile
   static Future<void> saveUserProfile(Map<String, dynamic> userProfile) async {
     if (!_isInitialized()) return;
     String jsonString = jsonEncode(userProfile);
     await _prefs!.setString("user_profile", jsonString);
-    print("Profil pengguna disimpan.");
+    // print("Profil pengguna disimpan.");
   }
 
+  // mengambil seluruh profile
   static Map<String, dynamic>? getUserProfile() {
     if (!_isInitialized()) return null;
     String? jsonString = _prefs!.getString("user_profile");
@@ -81,21 +90,37 @@ class SharedPrefs {
     return null;
   }
 
+  // menyimpan hanya gambar profile nya saja
+  static Future<void> saveProfilePicture(String url) async {
+    if (!_isInitialized()) return;
+    await _prefs!.setString("profile_picture", url);
+  }
+
+  // mengambil hanya gambar profile nya saja
+  static String? getProfilePicture() {
+    if (!_isInitialized()) return null;
+    return _prefs!.getString("profile_picture");
+  }
+
+  // menyimpan uang
   static Future<void> saveUserBalance(String? balance) async {
     if (!_isInitialized()) return;
     await _prefs!.setString("user_balance", balance ?? "0");
   }
 
+  // mengambil uang
   static String getUserBalance() {
     if (!_isInitialized()) return "0";
     return _prefs!.getString("user_balance") ?? "0";
   }
 
+  // menyimpan poin
   static Future<void> saveUserPoints(String? points) async {
     if (!_isInitialized()) return;
     await _prefs!.setString("user_points", points ?? "0");
   }
 
+  // mengambil poin
   static String getUserPoints() {
     if (!_isInitialized()) return "0";
     return _prefs!.getString("user_points") ?? "0";
@@ -143,7 +168,7 @@ class SharedPrefs {
     }).toList();
   }
 
-  // Method to remove a history item by index
+  // Method untuk menghapus riwayat by index
   static Future<void> hapusRiwayatByIndex(int index) async {
     if (!_isInitialized()) return;
     final List<String> existingData = _prefs!.getStringList(_keyRiwayat) ?? [];

@@ -71,6 +71,7 @@ flutter:
     - assets/recycle.png
     - assets/TrashTech.png
     - assets/default_image.png
+    - assets/images/default_profile.png
 
 flutter_icons:
   android: true

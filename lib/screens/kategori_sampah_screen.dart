@@ -14,7 +14,7 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
   List<dynamic> categories = [];
   bool isLoading = true;
   bool isOffline = false;
-  final String baseUrl = "http://192.168.43.134:5000";
+  final String baseUrl = "http://10.0.2.2:5000";
 
   @override
   void initState() {

@@ -3,21 +3,17 @@ import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart';
 
 class ApiService {
-  static const String baseUrl = "http://192.168.43.134:5000";
+  static const String baseUrl = "http://10.0.2.2:5000";
 
   static Future<List<dynamic>> getKategoriSampah() async {
     try {
       final response = await http.get(Uri.parse("$baseUrl/trash/types"));
-      print("Response Status: ${response.statusCode}");
-      print("Response Body: ${response.body}");
-
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
         throw Exception("Gagal mengambil data kategori sampah");
       }
     } catch (e) {
-      print("Error: $e");
       return [];
     }
   }

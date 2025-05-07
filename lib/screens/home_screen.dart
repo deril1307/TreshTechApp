@@ -1,3 +1,5 @@
+// ignore_for_file: await_only_futures
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tubes_mobile/screens/kategori_sampah_screen.dart';
@@ -35,27 +37,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUser() async {
-    // Ambil data user dari SharedPrefs
     String? savedUserId = SharedPrefs.getUserId();
-    String? savedUsername = await SharedPrefs.getUsername();
+    String? savedUsername = SharedPrefs.getUsername();
     double savedSaldo = SharedPrefs.getSaldo();
     int savedPoin = SharedPrefs.getPoin();
+    String? savedProfilePicture = SharedPrefs.getProfilePicture();
 
-    // Jika data user tidak ada, langsung set loading ke false
     if (savedUserId == null) {
       setState(() => isLoading = false);
       return;
     }
 
-    // Jika data user sudah ada di SharedPrefs, langsung set state tanpa memanggil API
     setState(() {
       userId = savedUserId;
       username = savedUsername ?? "Default Username";
       saldo = savedSaldo;
       poin = savedPoin;
+      profilePicture = savedProfilePicture ?? "";
       isLoading = false;
     });
 
+    // ignore: unnecessary_null_comparison
     if (savedUsername == null || savedSaldo == null || savedPoin == null) {
       try {
         var userData = await ApiService.getUserData(savedUserId);
@@ -73,22 +75,21 @@ class _HomeScreenState extends State<HomeScreen> {
           });
         }
 
-        // Simpan data terbaru ke SharedPrefs
         await SharedPrefs.saveUserData(userId!, username!, saldo, poin);
+        await SharedPrefs.saveProfilePicture(profilePicture ?? "");
 
-        // Ambil saldo dan poin terbaru dari SharedPrefs
-        saldo = await SharedPrefs.getSaldo();
-        poin = await SharedPrefs.getPoin();
+        saldo = SharedPrefs.getSaldo();
+        poin = SharedPrefs.getPoin();
 
-        print("Saldo terbaru: $saldo, Poin terbaru: $poin");
+        // print("Saldo terbaru: $saldo, Poin terbaru: $poin");
       } catch (e) {
-        print("Menggunakan data offline.");
-        // Jika gagal ambil data dari API, gunakan data dari SharedPrefs
+        // print("Menggunakan data offline.");
         setState(() {
           userId = savedUserId;
           username = savedUsername;
           saldo = savedSaldo;
           poin = savedPoin;
+          profilePicture = savedProfilePicture ?? "";
           isLoading = false;
         });
       }
@@ -198,6 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
+            // ignore: deprecated_member_use
             color: Colors.black.withOpacity(0.15),
             blurRadius: 12,
             offset: Offset(0, 4),
@@ -290,6 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           _buildMiniMenuButton(
             "Kategori",
+            // ignore: deprecated_member_use
             FontAwesomeIcons.trashAlt,
             Colors.purple,
             () {

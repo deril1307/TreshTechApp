@@ -228,6 +228,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   }
 
   // Fungsi untuk menampilkan notifikasi
+  // ignore: unused_element
   Future<void> _showSuccessNotification(int jumlahPoin, int saldoTukar) async {
     // Membuat data riwayat sebagai map
     Map<String, String> dataRiwayat = {

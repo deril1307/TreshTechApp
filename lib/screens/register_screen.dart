@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:tubes_mobile/services/api_service.dart';
 import 'package:tubes_mobile/screens/login_screen.dart';
 
+// ignore: use_key_in_widget_constructors
 class RegisterScreen extends StatefulWidget {
   @override
+  // ignore: library_private_types_in_public_api
   _RegisterScreenState createState() => _RegisterScreenState();
 }
 
@@ -29,9 +31,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!isValidEmail(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            "⚠️ Masukkan email yang valid (@ dan .com diperlukan)!",
-          ),
+          content: Text("Masukkan email yang valid (@ dan .com diperlukan)!"),
         ),
       );
       return;

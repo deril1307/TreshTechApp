@@ -7,7 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'profile_screen.dart';
 
-const String baseUrl = "http://192.168.43.134:5000";
+const String baseUrl = "http://10.0.2.2:5000";
 
 class EditProfilePage extends StatefulWidget {
   @override
@@ -35,6 +35,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Future<void> _checkConnectivity() async {
     var connectivityResult = await Connectivity().checkConnectivity();
     setState(() {
+      // ignore: unrelated_type_equality_checks
       isOffline = connectivityResult == ConnectivityResult.none;
     });
   }
@@ -59,9 +60,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
         addressController.text = data["address"] ?? "";
         profilePictureUrl.value = data["profile_picture"];
       }
-    } catch (e) {
-      print("Error mengambil data profil: $e");
-    }
+      // ignore: empty_catches
+    } catch (e) {}
   }
 
   Future<void> _pickImage() async {
@@ -129,16 +129,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
       var response = await Dio().put("$baseUrl/update-profile", data: formData);
 
       if (response.statusCode == 200 &&
-          response.data["message"] == "Profil berhasil diperbarui!") {
+          response.data["message"] == "✅ Profil berhasil diperbarui!") {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => ProfileScreen()),
         );
+        print("Response status: ${response.statusCode}");
+        print("Response data: ${response.data}");
       } else {
         _showSnackbar("Gagal memperbarui profil", Colors.red);
       }
     } catch (e) {
-      print("Error saat update profil: $e");
       _showSnackbar("Terjadi kesalahan saat memperbarui", Colors.red);
     }
   }
