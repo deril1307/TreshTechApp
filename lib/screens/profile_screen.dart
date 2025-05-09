@@ -22,13 +22,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool isLoading = true;
 
   @override
-  @override
   void initState() {
     super.initState();
-    _loadUserData(); // Mengganti _loadLocalUserData() dengan _loadUserData()
+    _loadUserData();
   }
 
-  /// Load data dari SharedPreference atau API
   Future<void> _loadUserData() async {
     setState(() => isLoading = true);
     String? userId = await SharedPrefs.getUserId();
@@ -42,7 +40,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     var connectivityResult = await Connectivity().checkConnectivity();
 
     if (connectivityResult != ConnectivityResult.none) {
-      // Jika online, ambil data dari API
       try {
         var results = await Future.wait([
           ApiService.getUserData(userId),
@@ -52,7 +49,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         var userData = results[0];
         var userProfile = results[1];
 
-        // Simpan ke SharedPreferences
         await SharedPrefs.saveUserProfile(userProfile);
         await SharedPrefs.saveUserBalance(userData["balance"]?.toString());
         await SharedPrefs.saveUserPoints(userData["points"]?.toString());
@@ -83,11 +79,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           });
         }
       } catch (e) {
-        print(" Gagal memuat data user dari API: $e");
+        print("Gagal memuat data user dari API: $e");
       }
     } else {
-      // Jika offline, ambil dari SharedPreferences
-      print(" Tidak ada koneksi, memuat dari SharedPreferences...");
+      print("Tidak ada koneksi, memuat dari SharedPreferences...");
 
       var savedProfile = await SharedPrefs.getUserProfile();
       var savedBalance = await SharedPrefs.getUserBalance();
@@ -108,15 +103,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (mounted) setState(() => isLoading = false);
   }
 
-  /// Logout dan kembali ke halaman login
-  void _logout() async {
-    await SharedPrefs.clearUserData();
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => LoginScreen()),
-      );
-    }
+  /// Menampilkan konfirmasi sebelum logout
+  void _confirmLogout() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text("Konfirmasi Logout"),
+            content: Text("Apakah Anda yakin ingin logout?"),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text("Batal", style: TextStyle(color: Colors.grey[700])),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () async {
+                  Navigator.of(context).pop(); // Tutup dialog
+                  await SharedPrefs.clearUserData();
+                  if (mounted) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => LoginScreen()),
+                    );
+                  }
+                },
+                child: Text("Logout"),
+              ),
+            ],
+          ),
+    );
   }
 
   @override
@@ -125,7 +149,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Color(0xFFE8F5E9),
       appBar: AppBar(
         title: Text("Profil", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Color(0xFF2E7D32),
+        backgroundColor: const Color.fromARGB(255, 7, 168, 13),
       ),
       body: Stack(
         children: [
@@ -150,13 +174,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 color: Colors.green[900],
                               ),
                             ),
-                            Text(
-                              "",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.green[700],
-                              ),
-                            ),
                             SizedBox(height: 20),
                             _buildUserInfoCard(),
                             SizedBox(height: 20),
@@ -174,13 +191,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               },
                             ),
                             SizedBox(height: 20),
-                            _buildActionButton("Logout", Colors.red, _logout),
+                            _buildActionButton(
+                              "Logout",
+                              Colors.red,
+                              _confirmLogout,
+                            ),
                           ],
                         ),
                       ),
                     ),
           ),
-          // Tambahin di sini
         ],
       ),
     );

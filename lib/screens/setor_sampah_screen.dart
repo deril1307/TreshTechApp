@@ -1,7 +1,9 @@
+// ignore_for_file: unused_element
+
 import 'package:flutter/material.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'kategori_sampah_screen.dart';
+import 'package:tubes_mobile/services/api_service.dart'; // Import ApiService
 
 class SetorSampahScreen extends StatefulWidget {
   @override
@@ -11,9 +13,18 @@ class SetorSampahScreen extends StatefulWidget {
 class _SetorSampahScreenState extends State<SetorSampahScreen> {
   final _beratController = TextEditingController();
   Map<String, dynamic>? _selectedKategori;
+  late Future<List<dynamic>>
+  _kategoriFuture; // Future untuk mendapatkan data kategori sampah
+
+  @override
+  void initState() {
+    super.initState();
+    // Memanggil API untuk mendapatkan kategori sampah
+    _kategoriFuture = ApiService.getKategoriSampah();
+  }
 
   void _submitData() async {
-    final beratGram = double.tryParse(_beratController.text) ?? 0;
+    final beratGram = int.tryParse(_beratController.text) ?? 0;
 
     if (_selectedKategori == null || beratGram <= 0) {
       _showDialog(
@@ -26,25 +37,42 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
     final jenis = _selectedKategori!['name'];
     final poinPerKg = _selectedKategori!['point_per_unit'];
     final unit = _selectedKategori!['unit'];
-
     final beratKg = beratGram / 1000;
     final poinDidapat = (beratKg * poinPerKg).round();
-    final totalPoinLama = SharedPrefs.getPoin();
+    final totalPoinLama = await SharedPrefs.getPoin();
     final totalPoinBaru = totalPoinLama + poinDidapat;
 
-    await SharedPrefs.savePoin(totalPoinBaru);
+    final userId = await SharedPrefs.getUserId();
 
-    _showDialog(
-      "Berhasil",
-      "Setor $beratGram gram (${beratKg.toStringAsFixed(2)} $unit) $jenis.\n"
-          "Kamu dapat $poinDidapat poin!\n"
-          "Total poin sekarang: $totalPoinBaru",
+    // Kirim ke API
+    final response = await ApiService.setorSampah(
+      int.parse(userId!),
+      _selectedKategori!['id'],
+      beratGram,
     );
 
+    // Debug print
+    print('API response: $response');
+
+    // Dianggap sukses jika terdapat 'points_earned'
+    if (response.containsKey('points_earned')) {
+      // Simpan total poin terbaru
+      await SharedPrefs.savePoin(totalPoinBaru);
+
+      _showDialog(
+        "Berhasil",
+        "Setor $beratGram gram (${beratKg.toStringAsFixed(2)} $unit) $jenis.\n"
+            "Kamu dapat ${response['points_earned']} poin!\n"
+            "Total poin sekarang: $totalPoinBaru",
+      );
+    } else {
+      // Tampilkan error dari API jika ada
+      final msg = response['message'] ?? "Terjadi kesalahan saat setor sampah.";
+      _showDialog("Gagal", msg);
+    }
+
     _beratController.clear();
-    setState(() {
-      _selectedKategori = null;
-    });
+    setState(() => _selectedKategori = null);
   }
 
   void _showDialog(String title, String message) {
@@ -73,26 +101,13 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
     );
   }
 
-  void _pilihKategori() async {
-    final hasil = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => KategoriSampahScreen()),
-    );
-
-    if (hasil != null && hasil is Map<String, dynamic>) {
-      setState(() {
-        _selectedKategori = hasil;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text("Setor Sampah", style: GoogleFonts.poppins()),
-        backgroundColor: Colors.green,
+        backgroundColor: const Color.fromARGB(255, 7, 168, 13),
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -109,41 +124,76 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              GestureDetector(
-                onTap: _pilihKategori,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 18,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 6,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _selectedKategori != null
-                            ? _selectedKategori!['name']
-                            : "Pilih Jenis Sampah",
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          color: Colors.black87,
+              FutureBuilder<List<dynamic>>(
+                future: _kategoriFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return Center(child: Text('Tidak ada kategori sampah'));
+                  }
+
+                  final kategoriList = snapshot.data!;
+
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: kategoriList.length,
+                    itemBuilder: (ctx, index) {
+                      final kategori = kategoriList[index];
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedKategori = kategori;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 18,
+                          ),
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 6,
+                                offset: Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                kategori['name'],
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              Icon(
+                                Icons.check_circle,
+                                color:
+                                    _selectedKategori == kategori
+                                        ? Colors.green
+                                        : Colors.grey,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      Icon(Icons.arrow_drop_down, color: Colors.grey[700]),
-                    ],
-                  ),
-                ),
+                      );
+                    },
+                  );
+                },
               ),
               const SizedBox(height: 25),
               Text(
@@ -202,4 +252,8 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
       ),
     );
   }
+}
+
+extension on Map<String, dynamic> {
+  get body => null;
 }

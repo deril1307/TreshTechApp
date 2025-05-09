@@ -1,5 +1,4 @@
 // ignore_for_file: await_only_futures
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tubes_mobile/screens/kategori_sampah_screen.dart';
@@ -62,7 +61,6 @@ class _HomeScreenState extends State<HomeScreen> {
       try {
         var userData = await ApiService.getUserData(savedUserId);
         var userProfile = await ApiService.fetchUserProfile(savedUserId);
-
         if (mounted) {
           setState(() {
             userId = savedUserId;
@@ -80,7 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
         saldo = SharedPrefs.getSaldo();
         poin = SharedPrefs.getPoin();
-
         // print("Saldo terbaru: $saldo, Poin terbaru: $poin");
       } catch (e) {
         // print("Menggunakan data offline.");
@@ -96,9 +93,8 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Function to handle refresh
   Future<void> _refreshData() async {
-    await _loadUser(); // Reload user data
+    await _loadUser();
   }
 
   @override
@@ -106,10 +102,14 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "TrashTech",
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 24),
+          "TrashTechBank",
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: Colors.white,
+          ),
         ),
-        backgroundColor: Colors.green,
+        backgroundColor: const Color.fromARGB(255, 7, 168, 13),
         leading: IconButton(
           icon: Icon(Icons.notifications, color: Colors.white),
           onPressed: () {
@@ -128,8 +128,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   profilePicture != null && profilePicture!.isNotEmpty
                       ? NetworkImage(profilePicture!)
                       : AssetImage('assets/images/default_profile.png')
-                          as ImageProvider, // Default image if no profile picture
-              backgroundColor: Colors.white, // White background for the avatar
+                          as ImageProvider,
+              backgroundColor: Colors.white,
             ),
             onPressed: () {
               Navigator.push(
@@ -151,8 +151,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? Center(child: CircularProgressIndicator())
                     : Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 15, // Add more vertical spacing
+                        horizontal: 15,
+                        vertical: 20, // Add more vertical spacing
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -188,15 +188,18 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBalanceCard() {
     return Container(
       width: double.infinity,
-      margin: EdgeInsets.symmetric(vertical: 20),
+      margin: EdgeInsets.symmetric(vertical: 8),
       padding: EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.green.shade400, Colors.green.shade700],
+          colors: [
+            const Color.fromARGB(255, 63, 168, 69),
+            const Color.fromARGB(255, 13, 141, 19),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(5),
         boxShadow: [
           BoxShadow(
             // ignore: deprecated_member_use
@@ -248,14 +251,18 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "$poin Poin",
+                "$poin TrashTechPoin",
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
-                  color: Colors.orange.shade200,
+                  color: const Color.fromARGB(255, 255, 255, 255),
                 ),
               ),
-              Icon(Icons.star, color: Colors.orange.shade200, size: 24),
+              Icon(
+                Icons.star,
+                color: const Color.fromARGB(255, 255, 255, 255),
+                size: 24,
+              ),
             ],
           ),
         ],
@@ -263,55 +270,198 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Grid menu for navigation similar to Gojek's interface
+  // Grid menu
   Widget _buildMenuGrid() {
     return Expanded(
-      child: GridView.count(
-        crossAxisCount: 4, // More columns like in Gojek
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 0.9, // Higher than width for more height
-        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 20),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Column(
+          children: [
+            GridView.count(
+              crossAxisCount: 4,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 0.9,
+              shrinkWrap: true,
+              physics:
+                  NeverScrollableScrollPhysics(), // biar scroll-nya satu saja
+              children: [
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: _buildMiniMenuButton(
+                    "Tukar",
+                    FontAwesomeIcons.gift,
+                    Colors.red,
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PenukaranPoinScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: _buildMiniMenuButton(
+                    "Tarik",
+                    FontAwesomeIcons.wallet,
+                    Colors.green,
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => TarikSaldoScreen()),
+                      );
+                    },
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: _buildMiniMenuButton(
+                    "Kategori",
+                    FontAwesomeIcons.trashAlt,
+                    Colors.purple,
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => KategoriSampahScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: _buildMiniMenuButton(
+                    "Setor",
+                    FontAwesomeIcons.recycle,
+                    Colors.orange,
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => SetorSampahScreen()),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            _buildAktivitasTerbaruCard(), // Sekarang muncul tepat di bawah grid
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAktivitasTerbaruCard() {
+    List<Map<String, String>> aktivitas = [
+      {"judul": "Setor Sampah Organik", "tanggal": "5 Mei 2025"},
+      {"judul": "Tukar Poin dengan Voucher", "tanggal": "3 Mei 2025"},
+      {"judul": "Tarik Saldo ke Dana", "tanggal": "1 Mei 2025"},
+    ];
+
+    Icon _getIcon(String judul) {
+      if (judul.toLowerCase().contains("setor")) {
+        return Icon(Icons.delete, color: Colors.orange); // ikon sampah
+      } else if (judul.toLowerCase().contains("tarik")) {
+        return Icon(
+          Icons.account_balance_wallet,
+          color: Colors.green,
+        ); // ikon dompet
+      } else if (judul.toLowerCase().contains("tukar")) {
+        return Icon(Icons.attach_money, color: Colors.red); // ikon uang
+      } else {
+        return Icon(Icons.history, color: Colors.grey); // default
+      }
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16),
+      margin: EdgeInsets.symmetric(horizontal: 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildMiniMenuButton("Tukar", FontAwesomeIcons.gift, Colors.red, () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => PenukaranPoinScreen()),
-            );
-          }),
-          _buildMiniMenuButton(
-            "Tarik",
-            FontAwesomeIcons.wallet,
-            Colors.green,
-            () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => TarikSaldoScreen()),
-              );
-            },
+          Text(
+            "Aktivitas Terbaru",
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
           ),
-          _buildMiniMenuButton(
-            "Kategori",
-            // ignore: deprecated_member_use
-            FontAwesomeIcons.trashAlt,
-            Colors.purple,
-            () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => KategoriSampahScreen()),
-              );
-            },
-          ),
-          _buildMiniMenuButton(
-            "Setor",
-            FontAwesomeIcons.recycle,
-            Colors.orange,
-            () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => SetorSampahScreen()),
-              );
-            },
+          SizedBox(height: 12),
+          ...aktivitas.map(
+            (item) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: _getIcon(item["judul"]!),
+              title: Text(
+                item["judul"]!,
+                style: GoogleFonts.poppins(fontSize: 14),
+              ),
+              subtitle: Text(
+                item["tanggal"]!,
+                style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
+              ),
+            ),
           ),
         ],
       ),

@@ -181,7 +181,7 @@ class SharedPrefs {
     }
   }
 
-  // Method to clear all history
+  // Method untuk menghapus semua data W
   static Future<void> hapusSemuaRiwayat() async {
     if (!_isInitialized()) return;
     await _prefs!.remove(_keyRiwayat);

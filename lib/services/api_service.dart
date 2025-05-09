@@ -18,6 +18,31 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> setorSampah(
+    int userId,
+    int kategoriId,
+    int beratGram,
+  ) async {
+    final url = Uri.parse('$baseUrl/setor-sampah');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'user_id': userId,
+        'waste_id': kategoriId,
+        'weight': beratGram,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      print('Error: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+      throw Exception('Gagal setor sampah');
+    }
+  }
+
   static Future<Map<String, dynamic>> register(
     String username,
     String email,

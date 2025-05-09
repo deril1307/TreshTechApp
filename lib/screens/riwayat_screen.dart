@@ -129,7 +129,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Riwayat Aktivitas", style: GoogleFonts.poppins()),
-        backgroundColor: Colors.green,
+        backgroundColor: const Color.fromARGB(255, 7, 168, 13),
         actions: [
           IconButton(
             icon: Icon(Icons.delete),

@@ -149,7 +149,7 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Tarik Saldo", style: GoogleFonts.poppins()),
-        backgroundColor: Colors.green,
+        backgroundColor: const Color.fromARGB(255, 7, 168, 13),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -165,7 +165,7 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
               style: GoogleFonts.poppins(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.green,
+                color: const Color.fromARGB(255, 7, 168, 13),
               ),
             ),
             SizedBox(height: 30),

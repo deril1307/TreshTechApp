@@ -167,7 +167,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       backgroundColor: Colors.green[50],
       appBar: AppBar(
         title: Text("Edit Profile"),
-        backgroundColor: Colors.green,
+        backgroundColor: const Color.fromARGB(255, 7, 168, 13),
       ),
       body: FutureBuilder(
         future: _profileFuture,
@@ -274,7 +274,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ElevatedButton(
                     onPressed: _updateProfile,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: const Color.fromARGB(255, 7, 168, 13),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),

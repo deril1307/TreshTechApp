@@ -88,7 +88,7 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
           'Kategori Sampah',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.green,
+        backgroundColor: const Color.fromARGB(255, 7, 168, 13),
         elevation: 0,
       ),
       body:

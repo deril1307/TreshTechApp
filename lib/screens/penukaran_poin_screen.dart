@@ -155,7 +155,7 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
     return ElevatedButton(
       onPressed: () => _tukarPoin(poinTukar, saldoTukar),
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.green.shade600,
+        backgroundColor: const Color.fromARGB(255, 18, 148, 25),
         minimumSize: Size(double.infinity, 50),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -171,7 +171,7 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Penukaran Poin", style: GoogleFonts.poppins()),
-        backgroundColor: Colors.green.shade700,
+        backgroundColor: const Color.fromARGB(255, 7, 168, 13),
       ),
       body: Container(
         width: double.infinity,
@@ -243,7 +243,7 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
                   style: GoogleFonts.poppins(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.green.shade900,
+                    color: const Color.fromARGB(255, 0, 0, 0),
                   ),
                 ),
                 SizedBox(height: 20),
