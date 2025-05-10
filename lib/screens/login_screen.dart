@@ -5,7 +5,10 @@ import 'package:tubes_mobile/screens/home_screen.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
+  // ignore: library_private_types_in_public_api
   _LoginScreenState createState() => _LoginScreenState();
 }
 

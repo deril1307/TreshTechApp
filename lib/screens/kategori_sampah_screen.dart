@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -6,7 +7,10 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:tubes_mobile/services/api_service.dart';
 
 class KategoriSampahScreen extends StatefulWidget {
+  const KategoriSampahScreen({super.key});
+
   @override
+  // ignore: library_private_types_in_public_api
   _KategoriSampahScreenState createState() => _KategoriSampahScreenState();
 }
 
@@ -16,13 +20,30 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
   bool isOffline = false;
   final String baseUrl = "http://10.0.2.2:5000";
 
+  Timer? _refreshTimer;
+
   @override
   void initState() {
     super.initState();
     _loadCategories();
+    _startAutoRefresh();
   }
 
-  /// Memuat kategori dari SharedPreferences jika user offline
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  /// Auto refresh setiap 60 detik
+  void _startAutoRefresh() {
+    _refreshTimer = Timer.periodic(Duration(seconds: 5), (Timer timer) async {
+      if (mounted) {
+        await _checkInternetAndFetchData();
+      }
+    });
+  }
+
   Future<void> _loadCategories() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? cachedData = prefs.getString('cached_categories');
@@ -37,22 +58,18 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
     _checkInternetAndFetchData();
   }
 
-  /// Cek koneksi internet sebelum mengambil data terbaru
   Future<void> _checkInternetAndFetchData() async {
     var connectivityResult = await Connectivity().checkConnectivity();
 
     if (connectivityResult == ConnectivityResult.none) {
-      // Tidak ada koneksi internet
       setState(() {
         isOffline = true;
       });
     } else {
-      // Ada koneksi internet, ambil data dari API
       fetchCategories();
     }
   }
 
-  /// Mengambil kategori dari API dan menyimpan ke SharedPreferences
   Future<void> fetchCategories() async {
     try {
       List<dynamic> data = await ApiService.getKategoriSampah();
@@ -66,7 +83,7 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
         });
       }
     } catch (e) {
-      print(" Error fetching categories: $e");
+      print("Error fetching categories: $e");
     } finally {
       if (mounted) {
         setState(() {
@@ -131,7 +148,6 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Nomor urutan
                               Text(
                                 "${index + 1}.",
                                 style: const TextStyle(
@@ -140,8 +156,6 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
                                 ),
                               ),
                               const SizedBox(width: 12),
-
-                              // Gambar
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
                                 child: CachedNetworkImage(
@@ -166,8 +180,6 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
                                 ),
                               ),
                               const SizedBox(width: 16),
-
-                              // Detail Kategori
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,

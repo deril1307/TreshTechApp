@@ -1,9 +1,7 @@
-// ignore_for_file: unused_element
-
 import 'package:flutter/material.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:tubes_mobile/services/api_service.dart'; // Import ApiService
+import 'package:tubes_mobile/services/api_service.dart';
 
 class SetorSampahScreen extends StatefulWidget {
   @override
@@ -13,8 +11,7 @@ class SetorSampahScreen extends StatefulWidget {
 class _SetorSampahScreenState extends State<SetorSampahScreen> {
   final _beratController = TextEditingController();
   Map<String, dynamic>? _selectedKategori;
-  late Future<List<dynamic>>
-  _kategoriFuture; // Future untuk mendapatkan data kategori sampah
+  late Future<List<dynamic>> _kategoriFuture;
 
   @override
   void initState() {
@@ -101,6 +98,90 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
     );
   }
 
+  // Fungsi untuk menampilkan kategori sampah dalam bottom sheet
+  void _showKategoriDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return FutureBuilder<List<dynamic>>(
+          future: _kategoriFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Center(child: Text('Tidak ada kategori sampah'));
+            }
+
+            final kategoriList = snapshot.data!;
+
+            return ListView.builder(
+              shrinkWrap: true,
+              itemCount: kategoriList.length,
+              itemBuilder: (ctx, index) {
+                final kategori = kategoriList[index];
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedKategori = kategori;
+                    });
+                    Navigator.pop(
+                      context,
+                    ); // Menutup bottom sheet setelah memilih kategori
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 18,
+                    ),
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 6,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          kategori['name'],
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        Icon(
+                          Icons.check_circle,
+                          color:
+                              _selectedKategori == kategori
+                                  ? Colors.green
+                                  : Colors.grey,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -124,76 +205,42 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              FutureBuilder<List<dynamic>>(
-                future: _kategoriFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  }
-
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  }
-
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(child: Text('Tidak ada kategori sampah'));
-                  }
-
-                  final kategoriList = snapshot.data!;
-
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: kategoriList.length,
-                    itemBuilder: (ctx, index) {
-                      final kategori = kategoriList[index];
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedKategori = kategori;
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 18,
-                          ),
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black12,
-                                blurRadius: 6,
-                                offset: Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                kategori['name'],
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              Icon(
-                                Icons.check_circle,
-                                color:
-                                    _selectedKategori == kategori
-                                        ? Colors.green
-                                        : Colors.grey,
-                              ),
-                            ],
-                          ),
+              GestureDetector(
+                onTap: _showKategoriDialog,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 18,
+                  ),
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 6,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _selectedKategori == null
+                            ? 'Pilih jenis sampah'
+                            : _selectedKategori!['name'],
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          color: Colors.black87,
                         ),
-                      );
-                    },
-                  );
-                },
+                      ),
+                      Icon(Icons.arrow_drop_down, color: Colors.grey),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 25),
               Text(
@@ -252,8 +299,4 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
       ),
     );
   }
-}
-
-extension on Map<String, dynamic> {
-  get body => null;
 }

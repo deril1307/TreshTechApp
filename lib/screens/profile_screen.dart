@@ -8,7 +8,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
   @override
+  // ignore: library_private_types_in_public_api
   _ProfileScreenState createState() => _ProfileScreenState();
 }
 
@@ -32,13 +34,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     String? userId = await SharedPrefs.getUserId();
 
     if (userId == null) {
-      print("⚠️ User ID tidak ditemukan");
       setState(() => isLoading = false);
       return;
     }
 
-    var connectivityResult = await Connectivity().checkConnectivity();
+    // Ambil data lokal dulu
+    var savedProfile = await SharedPrefs.getUserProfile();
+    var savedBalance = await SharedPrefs.getUserBalance();
+    var savedPoints = await SharedPrefs.getUserPoints();
+    bool localDataAvailable =
+        // ignore: unnecessary_null_comparison
+        savedProfile != null && savedBalance != null && savedPoints != null;
+    if (localDataAvailable) {
+      // Tampilkan data dari SharedPrefs
+      if (mounted) {
+        setState(() {
+          username = savedProfile["full_name"] ?? "New User";
+          phoneNumber = savedProfile["phone_number"] ?? "Belum diinput";
+          address = savedProfile["address"] ?? "Belum diinput";
+          profilePicture = savedProfile["profile_picture"];
+          saldo = double.tryParse(savedBalance) ?? 0.00;
+          poin = int.tryParse(savedPoints) ?? 0;
+        });
+      }
+    }
 
+    // Jika ada koneksi, coba ambil data terbaru dari API
+    var connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult != ConnectivityResult.none) {
       try {
         var results = await Future.wait([
@@ -57,7 +79,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           setState(() {
             username =
                 (userProfile["full_name"]?.isEmpty ?? true)
-                    ? "New Users"
+                    ? "New User"
                     : userProfile["full_name"];
             phoneNumber =
                 (userProfile["phone_number"]?.isEmpty ?? true)
@@ -71,7 +93,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 userProfile["profile_picture"]?.isEmpty ?? true
                     ? null
                     : userProfile["profile_picture"];
-
             saldo =
                 double.tryParse(userData["balance"]?.toString() ?? "0.00") ??
                 0.00;
@@ -79,24 +100,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           });
         }
       } catch (e) {
-        print("Gagal memuat data user dari API: $e");
-      }
-    } else {
-      print("Tidak ada koneksi, memuat dari SharedPreferences...");
-
-      var savedProfile = await SharedPrefs.getUserProfile();
-      var savedBalance = await SharedPrefs.getUserBalance();
-      var savedPoints = await SharedPrefs.getUserPoints();
-
-      if (mounted) {
-        setState(() {
-          username = savedProfile?["full_name"] ?? "New Users";
-          phoneNumber = savedProfile?["phone_number"] ?? "Belum diinput";
-          address = savedProfile?["address"] ?? "Belum diinput";
-          profilePicture = savedProfile?["profile_picture"];
-          saldo = double.tryParse(savedBalance) ?? 0.00;
-          poin = int.tryParse(savedPoints) ?? 0;
-        });
+        print("Gagal memuat data user dari APi, Ambil Dari Lokal: $e");
       }
     }
 
@@ -213,11 +217,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundImage:
           (profilePicture != null && profilePicture!.isNotEmpty)
               ? CachedNetworkImageProvider(profilePicture!)
-              : null,
-      child:
-          (profilePicture == null || profilePicture!.isEmpty)
-              ? Icon(Icons.eco, size: 50, color: Color(0xFF2E7D32))
-              : null,
+              : AssetImage('assets/images/default_profile.png')
+                  as ImageProvider,
     );
   }
 
@@ -240,8 +241,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               "Rp ${saldo.toStringAsFixed(2)}",
               Icons.attach_money,
             ),
-            Divider(),
-            _buildInfoRow("Level", "Eco Warrior", Icons.emoji_nature),
           ],
         ),
       ),

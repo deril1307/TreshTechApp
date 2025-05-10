@@ -1,6 +1,7 @@
 // ignore_for_file: await_only_futures
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:async';
 import 'package:tubes_mobile/screens/kategori_sampah_screen.dart';
 import 'package:tubes_mobile/screens/penukaran_poin_screen.dart';
 import 'package:tubes_mobile/screens/setor_sampah_screen.dart';
@@ -28,11 +29,19 @@ class _HomeScreenState extends State<HomeScreen> {
   int poin = 0;
   bool isLoading = true;
   String? profilePicture;
+  late Timer _timer;
 
   @override
   void initState() {
     super.initState();
     _loadUser();
+    _startAutoRefresh();
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
   }
 
   Future<void> _loadUser() async {
@@ -72,15 +81,11 @@ class _HomeScreenState extends State<HomeScreen> {
             isLoading = false;
           });
         }
-
         await SharedPrefs.saveUserData(userId!, username!, saldo, poin);
         await SharedPrefs.saveProfilePicture(profilePicture ?? "");
-
         saldo = SharedPrefs.getSaldo();
         poin = SharedPrefs.getPoin();
-        // print("Saldo terbaru: $saldo, Poin terbaru: $poin");
       } catch (e) {
-        // print("Menggunakan data offline.");
         setState(() {
           userId = savedUserId;
           username = savedUsername;
@@ -95,6 +100,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _refreshData() async {
     await _loadUser();
+  }
+
+  void _startAutoRefresh() {
+    // Timer yang memanggil _refreshData setiap 5 detik
+    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
+      _refreshData();
+    });
   }
 
   @override
@@ -159,9 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           SizedBox(height: 20),
                           Text(
-                            username != null
-                                ? "Selamat Datang, $username!"
-                                : "Selamat Datang!",
+                            username != null ? "Hi, $username!" : "Hi!",
                             style: GoogleFonts.poppins(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
@@ -184,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Balance card showing the user's balance and points
+  // card
   Widget _buildBalanceCard() {
     return Container(
       width: double.infinity,
@@ -193,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color.fromARGB(255, 63, 168, 69),
+            const Color.fromARGB(255, 63, 168, 69), // hijau uang
             const Color.fromARGB(255, 13, 141, 19),
           ],
           begin: Alignment.topLeft,
@@ -202,7 +212,6 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(5),
         boxShadow: [
           BoxShadow(
-            // ignore: deprecated_member_use
             color: Colors.black.withOpacity(0.15),
             blurRadius: 12,
             offset: Offset(0, 4),
@@ -212,7 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Card title
+          // Judul
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -229,41 +238,60 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           SizedBox(height: 15),
 
-          // Balance
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Rp ${saldo.toStringAsFixed(2)}",
-                style: GoogleFonts.poppins(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
+          // Saldo
+          Container(
+            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Rp ${saldo.toStringAsFixed(2)}",
+                  style: GoogleFonts.poppins(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.lightGreenAccent,
+                  ),
                 ),
-              ),
-              Icon(Icons.monetization_on, color: Colors.white, size: 24),
-            ],
+                Icon(
+                  Icons.monetization_on,
+                  color: Colors.yellowAccent,
+                  size: 26,
+                ),
+              ],
+            ),
           ),
           SizedBox(height: 10),
 
-          // Points
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "$poin TrashTechPoin",
-                style: GoogleFonts.poppins(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: const Color.fromARGB(255, 255, 255, 255),
+          // Poin
+          Container(
+            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.deepPurpleAccent.withOpacity(0.3),
+                  Colors.blueAccent.withOpacity(0.3),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "$poin TrashTechPoin",
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              Icon(
-                Icons.star,
-                color: const Color.fromARGB(255, 255, 255, 255),
-                size: 24,
-              ),
-            ],
+                Icon(Icons.star, color: Colors.amberAccent, size: 24),
+              ],
+            ),
           ),
         ],
       ),

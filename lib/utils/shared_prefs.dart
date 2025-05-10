@@ -50,7 +50,6 @@ class SharedPrefs {
   static Future<void> saveSaldo(double saldo) async {
     if (!_isInitialized()) return;
     await _prefs!.setDouble("saldo", saldo);
-    // print("Saldo disimpan: $saldo");
   }
 
   // mengambil saldo
@@ -63,7 +62,6 @@ class SharedPrefs {
   static Future<void> savePoin(int poin) async {
     if (!_isInitialized()) return;
     await _prefs!.setInt("poin", poin);
-    // print("Poin disimpan: $poin");
   }
 
   // mengambil poin
@@ -77,7 +75,6 @@ class SharedPrefs {
     if (!_isInitialized()) return;
     String jsonString = jsonEncode(userProfile);
     await _prefs!.setString("user_profile", jsonString);
-    // print("Profil pengguna disimpan.");
   }
 
   // mengambil seluruh profile

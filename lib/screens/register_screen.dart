@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tubes_mobile/services/api_service.dart';
 import 'package:tubes_mobile/screens/login_screen.dart';
 
@@ -57,18 +58,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Set warna status bar
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.green[50], // Atur warna status bar
+        statusBarIconBrightness:
+            Brightness.dark, // Ikon gelap jika background terang
+      ),
+    );
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Register")),
+      backgroundColor: Colors.green[50],
+      appBar: AppBar(
+        backgroundColor: Colors.green[50], // Samakan dengan background
+        elevation: 0, // Hilangkan bayangan
+        title: const Text("Register", style: TextStyle(color: Colors.black)),
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Gambar Header
-            Image.asset(
-              "assets/TrashTech.png",
-              height: 150, // Sesuaikan ukuran gambar
-            ),
+            Image.asset("assets/TrashTech.png", height: 150),
             const SizedBox(height: 20),
 
             // Form Registrasi
