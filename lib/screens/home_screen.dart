@@ -298,133 +298,123 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Grid menu
+  // Grid menu tanpa scroll
   Widget _buildMenuGrid() {
-    return Expanded(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: Column(
+    return Column(
+      children: [
+        GridView.count(
+          crossAxisCount: 4,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 0.9,
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
           children: [
-            GridView.count(
-              crossAxisCount: 4,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 0.9,
-              shrinkWrap: true,
-              physics:
-                  NeverScrollableScrollPhysics(), // biar scroll-nya satu saja
-              children: [
-                Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
                   ),
-                  child: _buildMiniMenuButton(
-                    "Tukar",
-                    FontAwesomeIcons.gift,
-                    Colors.red,
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PenukaranPoinScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: _buildMiniMenuButton(
-                    "Tarik",
-                    FontAwesomeIcons.wallet,
-                    Colors.green,
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => TarikSaldoScreen()),
-                      );
-                    },
-                  ),
-                ),
-                Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: _buildMiniMenuButton(
-                    "Kategori",
-                    FontAwesomeIcons.trashAlt,
-                    Colors.purple,
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => KategoriSampahScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: _buildMiniMenuButton(
-                    "Setor",
-                    FontAwesomeIcons.recycle,
-                    Colors.orange,
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => SetorSampahScreen()),
-                      );
-                    },
-                  ),
-                ),
-              ],
+                ],
+              ),
+              child: _buildMiniMenuButton(
+                "Tukar",
+                FontAwesomeIcons.gift,
+                Colors.red,
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => PenukaranPoinScreen()),
+                  );
+                },
+              ),
             ),
-            SizedBox(height: 16),
-            _buildAktivitasTerbaruCard(), // Sekarang muncul tepat di bawah grid
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: _buildMiniMenuButton(
+                "Tarik",
+                FontAwesomeIcons.wallet,
+                Colors.green,
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => TarikSaldoScreen()),
+                  );
+                },
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: _buildMiniMenuButton(
+                "Kategori",
+                FontAwesomeIcons.trashAlt,
+                Colors.purple,
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => KategoriSampahScreen()),
+                  );
+                },
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: _buildMiniMenuButton(
+                "Setor",
+                FontAwesomeIcons.recycle,
+                Colors.orange,
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SetorSampahScreen()),
+                  );
+                },
+              ),
+            ),
           ],
         ),
-      ),
+        SizedBox(height: 16),
+        _buildAktivitasTerbaruCard(),
+      ],
     );
   }
 

@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:tubes_mobile/services/api_service.dart';
 
+import 'kategori_detail_screen.dart'; // import layar detail kategori
+
 class KategoriSampahScreen extends StatefulWidget {
   const KategoriSampahScreen({super.key});
 
@@ -18,8 +20,6 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
   List<dynamic> categories = [];
   bool isLoading = true;
   bool isOffline = false;
-  final String baseUrl = "http://10.0.2.2:5000";
-
   Timer? _refreshTimer;
 
   @override
@@ -35,9 +35,8 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
     super.dispose();
   }
 
-  /// Auto refresh setiap 60 detik
   void _startAutoRefresh() {
-    _refreshTimer = Timer.periodic(Duration(seconds: 5), (Timer timer) async {
+    _refreshTimer = Timer.periodic(Duration(seconds: 60), (timer) async {
       if (mounted) {
         await _checkInternetAndFetchData();
       }
@@ -134,8 +133,14 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
 
                     return GestureDetector(
                       onTap: () {
-                        Navigator.pop(context, category);
-                        print("Kategori ${category['name']}");
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) =>
+                                    KategoriDetailScreen(kategori: category),
+                          ),
+                        );
                       },
                       child: Card(
                         shape: RoundedRectangleBorder(
