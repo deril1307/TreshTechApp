@@ -46,6 +46,29 @@ class _LoginScreenState extends State<LoginScreen> {
       await SharedPrefs.saveUserId(response["user_id"].toString());
 
       if (!mounted) return;
+
+      // Tampilkan dialog "Login berhasil"
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (_) => AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green),
+                  SizedBox(width: 10),
+                  Text("Sukses"),
+                ],
+              ),
+              content: Text("Login berhasil!"),
+            ),
+      );
+
+      // Delay dan navigasi ke HomeScreen setelah 2 detik
+      await Future.delayed(Duration(seconds: 2));
+
+      if (!mounted) return;
+      Navigator.pop(context); // Tutup dialog
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => HomeScreen()),

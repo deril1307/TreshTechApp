@@ -4,7 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:tubes_mobile/services/api_service.dart';
 
 class SetorSampahScreen extends StatefulWidget {
+  const SetorSampahScreen({super.key});
   @override
+  // ignore: library_private_types_in_public_api
   _SetorSampahScreenState createState() => _SetorSampahScreenState();
 }
 
@@ -38,7 +40,6 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
     final poinDidapat = (beratKg * poinPerKg).round();
     final totalPoinLama = await SharedPrefs.getPoin();
     final totalPoinBaru = totalPoinLama + poinDidapat;
-
     final userId = await SharedPrefs.getUserId();
 
     // Kirim ke API
@@ -49,7 +50,7 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
     );
 
     // Debug print
-    print('API response: $response');
+    // print('API response: $response');
 
     // Dianggap sukses jika terdapat 'points_earned'
     if (response.containsKey('points_earned')) {
@@ -187,10 +188,14 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text("Setor Sampah", style: GoogleFonts.poppins()),
+        title: Text(
+          "Setor Sampah",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: const Color.fromARGB(255, 7, 168, 13),
         elevation: 0,
       ),
+
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24),

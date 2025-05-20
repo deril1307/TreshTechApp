@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart';
+// ignore: unused_import
+import 'package:tubes_mobile/utils/shared_prefs.dart';
 
 class ApiService {
   static const String baseUrl = "http://10.0.2.2:5000";
@@ -104,5 +106,37 @@ class ApiService {
       print(" Error mengambil profil: $e");
     }
     return {};
+  }
+
+  // Membuat fungsi untuk update untuk terhubung ke flask python
+  static Future<Map<String, dynamic>> tarikSaldo({
+    required String userId,
+    required double amount,
+  }) async {
+    final url = Uri.parse('$baseUrl/update_saldo');
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"user_id": userId, "amount": amount}),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Gagal tarik saldo: ${response.body}");
+    }
+  }
+
+  // membuat leaderboaard
+  // GET data leaderboard
+  static Future<List<Map<String, dynamic>>> getLeaderboard() async {
+    final response = await http.get(Uri.parse('$baseUrl/leaderboard'));
+
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      throw Exception("Gagal mengambil data leaderboard.");
+    }
   }
 }

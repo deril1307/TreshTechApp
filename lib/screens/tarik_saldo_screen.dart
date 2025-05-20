@@ -3,6 +3,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
 import 'package:google_fonts/google_fonts.dart';
+// ignore: unused_import
+import 'package:tubes_mobile/services/api_service.dart';
 
 class TarikSaldoScreen extends StatefulWidget {
   @override
@@ -90,47 +92,52 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
       return;
     }
 
-    if (jumlahTarik <= saldo) {
-      setState(() {
-        saldo -= jumlahTarik;
-        _selectedAmount = null;
-      });
+    final userId = SharedPrefs.getUserId();
 
-      await SharedPrefs.saveUserData(
-        SharedPrefs.getUserId()!,
-        (await SharedPrefs.getUsername()) ?? '',
-        saldo,
-        poin,
+    if (userId == null) {
+      _showSnackbar('User ID tidak ditemukan.');
+      return;
+    }
+
+    try {
+      final result = await ApiService.tarikSaldo(
+        userId: userId,
+        amount: jumlahTarik,
       );
 
-      final formattedAmount = jumlahTarik
-          .toStringAsFixed(0)
-          .replaceAllMapped(
-            RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-            (m) => '${m[1]}.',
-          );
+      if (result['status'] == 'success') {
+        setState(() {
+          saldo = result['new_balance'];
+          _selectedAmount = null;
+        });
 
-      final successMessage =
-          'Permintaan tarik saldo sebesar Rp $formattedAmount telah dikirim.';
+        await SharedPrefs.saveSaldo(saldo);
 
-      await _showNotification('Tarik Saldo Berhasil', successMessage);
+        final formattedAmount = jumlahTarik
+            .toStringAsFixed(0)
+            .replaceAllMapped(
+              RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+              (m) => '${m[1]}.',
+            );
 
-      // Prepare notification data in the desired format
-      final notificationData = {
-        'kegiatan': 'Penarikan Saldo',
-        'jenis': 'Tarik Saldo',
-        'tanggal': DateTime.now().toString(),
-        'saldo': formattedAmount,
-      };
+        final successMessage =
+            'Permintaan tarik saldo sebesar Rp $formattedAmount telah dikirim.';
 
-      // Save the notification data to SharedPreferences
-      await SharedPrefs.tambahRiwayat(
-        notificationData,
-      ); // Save notification to history
+        await _showNotification('Tarik Saldo Berhasil', successMessage);
 
-      _showSnackbar(successMessage);
-    } else {
-      _showSnackbar('Saldo tidak cukup untuk tarik Rp $_selectedAmount.');
+        await SharedPrefs.tambahRiwayat({
+          'kegiatan': 'Penarikan Saldo',
+          'jenis': 'Tarik Saldo',
+          'tanggal': DateTime.now().toString(),
+          'saldo': formattedAmount,
+        });
+
+        _showSnackbar(successMessage);
+      } else {
+        _showSnackbar(result['message'] ?? 'Gagal melakukan penarikan saldo.');
+      }
+    } catch (e) {
+      _showSnackbar('Terjadi kesalahan: $e');
     }
   }
 
@@ -148,9 +155,13 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Tarik Saldo", style: GoogleFonts.poppins()),
+        title: Text(
+          "Tarik Saldo",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: const Color.fromARGB(255, 7, 168, 13),
       ),
+
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(

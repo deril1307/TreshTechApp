@@ -2,30 +2,27 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:tubes_mobile/utils/shared_prefs.dart';
 import 'package:tubes_mobile/services/api_service.dart';
-
-import 'kategori_detail_screen.dart'; // import layar detail kategori
+import 'kategori_detail_screen.dart';
 
 class KategoriSampahScreen extends StatefulWidget {
   const KategoriSampahScreen({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
   _KategoriSampahScreenState createState() => _KategoriSampahScreenState();
 }
 
 class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
   List<dynamic> categories = [];
   bool isLoading = true;
-  bool isOffline = false;
   Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    _loadCachedDataThenFetch();
     _startAutoRefresh();
   }
 
@@ -36,59 +33,43 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
   }
 
   void _startAutoRefresh() {
-    _refreshTimer = Timer.periodic(Duration(seconds: 60), (timer) async {
-      if (mounted) {
-        await _checkInternetAndFetchData();
-      }
+    _refreshTimer = Timer.periodic(const Duration(seconds: 60), (timer) async {
+      if (mounted) await _checkInternetAndFetchData();
     });
   }
 
-  Future<void> _loadCategories() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? cachedData = prefs.getString('cached_categories');
-
+  Future<void> _loadCachedDataThenFetch() async {
+    String? cachedData = await SharedPrefUtils.getKategoriSampah();
     if (cachedData != null) {
       setState(() {
         categories = jsonDecode(cachedData);
         isLoading = false;
       });
     }
-
-    _checkInternetAndFetchData();
+    await _checkInternetAndFetchData();
   }
 
   Future<void> _checkInternetAndFetchData() async {
-    var connectivityResult = await Connectivity().checkConnectivity();
-
-    if (connectivityResult == ConnectivityResult.none) {
-      setState(() {
-        isOffline = true;
-      });
-    } else {
-      fetchCategories();
+    var result = await Connectivity().checkConnectivity();
+    if (result != ConnectivityResult.none) {
+      await fetchCategories();
     }
   }
 
   Future<void> fetchCategories() async {
     try {
-      List<dynamic> data = await ApiService.getKategoriSampah();
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('cached_categories', jsonEncode(data));
+      final data = await ApiService.getKategoriSampah();
+      await SharedPrefUtils.setKategoriSampah(jsonEncode(data));
 
       if (mounted) {
         setState(() {
           categories = data;
-          isOffline = false;
         });
       }
     } catch (e) {
-      print("Error fetching categories: $e");
+      print("Gagal mengambil kategori: $e");
     } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -111,12 +92,10 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
           isLoading
               ? const Center(child: CircularProgressIndicator())
               : categories.isEmpty
-              ? Center(
+              ? const Center(
                 child: Text(
-                  isOffline
-                      ? "Tidak ada data tersimpan. Harap sambungkan ke internet."
-                      : "Tidak ada kategori tersedia.",
-                  style: const TextStyle(fontSize: 16, color: Colors.red),
+                  "Tidak ada kategori tersedia.",
+                  style: TextStyle(fontSize: 16, color: Colors.red),
                   textAlign: TextAlign.center,
                 ),
               )
@@ -130,15 +109,13 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
                     final String? imageUrl = category['cloudinary_url'];
                     final String defaultImage =
                         "assets/images/default_image.png";
-
                     return GestureDetector(
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder:
-                                (context) =>
-                                    KategoriDetailScreen(kategori: category),
+                                (_) => KategoriDetailScreen(kategori: category),
                           ),
                         );
                       },

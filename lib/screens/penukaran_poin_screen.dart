@@ -170,9 +170,13 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Penukaran Poin", style: GoogleFonts.poppins()),
+        title: Text(
+          "Penukaran Poin",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: const Color.fromARGB(255, 7, 168, 13),
       ),
+
       body: Container(
         width: double.infinity,
         decoration: BoxDecoration(

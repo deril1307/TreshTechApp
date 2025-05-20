@@ -150,10 +150,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFE8F5E9),
+      backgroundColor: Color.fromARGB(255, 245, 245, 245),
       appBar: AppBar(
         title: Text("Profil", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: const Color.fromARGB(255, 7, 168, 13),
+        backgroundColor: const Color.fromARGB(255, 38, 198, 38),
       ),
       body: Stack(
         children: [
@@ -168,33 +168,138 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         padding: EdgeInsets.all(16),
                         child: Column(
                           children: [
-                            _buildProfilePicture(),
-                            SizedBox(height: 16),
-                            Text(
-                              username ?? "Pengguna",
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green[900],
+                            // Container Profil (Foto + Info)
+                            Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // Foto Profil
+                                  _buildProfilePicture(),
+                                  SizedBox(width: 16),
+
+                                  // Nama dan Tombol Edit
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          username ?? "Pengguna",
+                                          style: TextStyle(
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.green[900],
+                                          ),
+                                        ),
+                                        SizedBox(height: 8),
+                                        _buildActionButton(
+                                          "Edit Profil",
+                                          Color(0xFF2E7D32),
+                                          () async {
+                                            await Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder:
+                                                    (context) =>
+                                                        EditProfilePage(),
+                                              ),
+                                            );
+                                            _loadUserData();
+                                          },
+                                          isSmall: true,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
+
                             SizedBox(height: 20),
-                            _buildUserInfoCard(),
-                            SizedBox(height: 20),
-                            _buildActionButton(
-                              "Edit Profil",
-                              Color(0xFF2E7D32),
-                              () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => EditProfilePage(),
+
+                            // Poin & Saldo
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    padding: EdgeInsets.all(16),
+                                    margin: EdgeInsets.only(right: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: _buildInfoRow(
+                                      "Poin Anda",
+                                      "$poin Poin",
+                                      Icons.star,
+                                    ),
                                   ),
-                                );
-                                _loadUserData();
-                              },
+                                ),
+                                Expanded(
+                                  child: Container(
+                                    padding: EdgeInsets.all(16),
+                                    margin: EdgeInsets.only(left: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: _buildInfoRow(
+                                      "Saldo",
+                                      "Rp ${saldo.toStringAsFixed(2)}",
+                                      Icons.attach_money,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
+
+                            SizedBox(height: 16),
+
+                            // Nomor Telepon & Alamat
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    padding: EdgeInsets.all(16),
+                                    margin: EdgeInsets.only(right: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: _buildInfoRow(
+                                      "Nomor Telepon",
+                                      phoneNumber ?? "-",
+                                      Icons.phone,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Container(
+                                    padding: EdgeInsets.all(16),
+                                    margin: EdgeInsets.only(left: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: _buildInfoRow(
+                                      "Alamat",
+                                      address ?? "-",
+                                      Icons.location_on,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
                             SizedBox(height: 20),
+
+                            // Logout
                             _buildActionButton(
                               "Logout",
                               Colors.red,
@@ -206,6 +311,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Tambahan opsional: ubah _buildActionButton untuk mendukung ukuran kecil
+  Widget _buildActionButton(
+    String label,
+    Color color,
+    VoidCallback onPressed, {
+    bool isSmall = false,
+  }) {
+    return SizedBox(
+      height: isSmall ? 36 : 48,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          padding:
+              isSmall
+                  ? EdgeInsets.symmetric(horizontal: 12, vertical: 8)
+                  : EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        onPressed: onPressed,
+        child: Text(
+          label,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: isSmall ? 14 : 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }
@@ -222,68 +358,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildUserInfoCard() {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 4,
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildInfoRow("Nomor Telepon", phoneNumber ?? "-", Icons.phone),
-            Divider(),
-            _buildInfoRow("Alamat", address ?? "-", Icons.location_on),
-            Divider(),
-            _buildInfoRow("Poin Anda", "$poin Poin", Icons.star),
-            Divider(),
-            _buildInfoRow(
-              "Saldo",
-              "Rp ${saldo.toStringAsFixed(2)}",
-              Icons.attach_money,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton(String text, Color color, VoidCallback onPressed) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-      onPressed: onPressed,
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-        child: Text(text, style: TextStyle(fontSize: 16, color: Colors.white)),
-      ),
-    );
-  }
-
   Widget _buildInfoRow(String title, String value, IconData icon) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Icon(icon, color: Colors.green[700]),
-            SizedBox(width: 10),
-            Text(
-              title,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-          ],
-        ),
-        Flexible(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.green[900],
-            ),
+        Icon(icon, color: Colors.green[700]),
+        SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              SizedBox(height: 4),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green[900],
+                ),
+              ),
+            ],
           ),
         ),
       ],

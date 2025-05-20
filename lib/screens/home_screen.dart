@@ -1,8 +1,10 @@
 // ignore_for_file: await_only_futures
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:tubes_mobile/screens/info_screen.dart';
 import 'dart:async';
 import 'package:tubes_mobile/screens/kategori_sampah_screen.dart';
+import 'package:tubes_mobile/screens/leaderboard_screen.dart';
 import 'package:tubes_mobile/screens/penukaran_poin_screen.dart';
 import 'package:tubes_mobile/screens/setor_sampah_screen.dart';
 import 'package:tubes_mobile/screens/tarik_saldo_screen.dart';
@@ -125,7 +127,6 @@ class _HomeScreenState extends State<HomeScreen> {
         leading: IconButton(
           icon: Icon(Icons.notifications, color: Colors.white),
           onPressed: () {
-            // Navigate to RiwayatScreen when the notification icon is clicked
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => RiwayatScreen()),
@@ -150,21 +151,21 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          SizedBox(width: 10), // Add spacing between icons in the AppBar
+          SizedBox(width: 10),
         ],
       ),
       body: Stack(
         children: [
-          // Wrap the body with RefreshIndicator
           RefreshIndicator(
             onRefresh: _refreshData,
             child:
                 isLoading
                     ? Center(child: CircularProgressIndicator())
-                    : Padding(
+                    : SingleChildScrollView(
+                      physics: AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 15,
-                        vertical: 20, // Add more vertical spacing
+                        vertical: 20,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -178,17 +179,15 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: Colors.green[800],
                             ),
                           ),
-                          SizedBox(height: 30), // Add spacing after greeting
-                          _buildBalanceCard(), // Add balance card widget
-                          SizedBox(
-                            height: 40,
-                          ), // Add more spacing between components
-                          _buildMenuGrid(), // Display the menu grid
+                          SizedBox(height: 30),
+                          _buildBalanceCard(),
+                          SizedBox(height: 30),
+                          _buildMenuGrid(),
                         ],
                       ),
                     ),
           ),
-          ConnectivityChecker(), // Display connection status
+          ConnectivityChecker(),
         ],
       ),
     );
@@ -298,123 +297,123 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Grid menu tanpa scroll
   Widget _buildMenuGrid() {
-    return Column(
-      children: [
-        GridView.count(
-          crossAxisCount: 4,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-          childAspectRatio: 0.9,
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          children: [
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: _buildMiniMenuButton(
-                "Tukar",
-                FontAwesomeIcons.gift,
-                Colors.red,
-                () {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16), // Tambahkan padding agar tidak mepet
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GridView.count(
+            crossAxisCount: 4,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 0.9,
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            children: [
+              // Menu Tukar
+              _buildMenuItem(
+                label: "Tukar",
+                icon: FontAwesomeIcons.gift,
+                color: Colors.red,
+                onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => PenukaranPoinScreen()),
                   );
                 },
               ),
-            ),
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: _buildMiniMenuButton(
-                "Tarik",
-                FontAwesomeIcons.wallet,
-                Colors.green,
-                () {
+
+              // Menu Tarik
+              _buildMenuItem(
+                label: "Tarik",
+                icon: FontAwesomeIcons.wallet,
+                color: Colors.green,
+                onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => TarikSaldoScreen()),
                   );
                 },
               ),
-            ),
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: _buildMiniMenuButton(
-                "Kategori",
-                FontAwesomeIcons.trashAlt,
-                Colors.purple,
-                () {
+
+              // Menu Kategori
+              _buildMenuItem(
+                label: "Kategori",
+                icon: FontAwesomeIcons.trashAlt,
+                color: Colors.purple,
+                onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => KategoriSampahScreen()),
                   );
                 },
               ),
-            ),
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: _buildMiniMenuButton(
-                "Setor",
-                FontAwesomeIcons.recycle,
-                Colors.orange,
-                () {
+
+              // Menu Setor
+              _buildMenuItem(
+                label: "Setor",
+                icon: FontAwesomeIcons.recycle,
+                color: Colors.orange,
+                onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => SetorSampahScreen()),
                   );
                 },
               ),
-            ),
-          ],
-        ),
-        SizedBox(height: 16),
-        _buildAktivitasTerbaruCard(),
-      ],
+
+              // Menu Info
+              _buildMenuItem(
+                label: "Info",
+                icon: FontAwesomeIcons.infoCircle,
+                color: Colors.blue,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => InfoScreen()),
+                  );
+                },
+              ),
+
+              // Menu Leaderboard
+              _buildMenuItem(
+                label: "Rank",
+                icon: FontAwesomeIcons.trophy,
+                color: Colors.amber,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => LeaderboardScreen()),
+                  );
+                },
+              ),
+            ],
+          ),
+          SizedBox(height: 24),
+          _buildAktivitasTerbaruCard(),
+          SizedBox(height: 24), // Tambahan spacing bawah
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuItem({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+        ],
+      ),
+      child: _buildMiniMenuButton(label, icon, color, onTap),
     );
   }
 

@@ -185,3 +185,21 @@ class SharedPrefs {
     print("🗑 Semua riwayat dihapus.");
   }
 }
+
+// utils/shared_pref.dart
+
+class SharedPrefUtils {
+  static const _kategoriKey = 'cached_categories';
+
+  // Simpan data kategori (String berupa JSON)
+  static Future<void> setKategoriSampah(String dataJson) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kategoriKey, dataJson);
+  }
+
+  // Ambil data kategori (String berupa JSON)
+  static Future<String?> getKategoriSampah() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_kategoriKey);
+  }
+}
