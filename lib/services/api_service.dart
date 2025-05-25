@@ -49,6 +49,7 @@ class ApiService {
     String username,
     String email,
     String password,
+    String fullName,
   ) async {
     final response = await http.post(
       Uri.parse("$baseUrl/register"),
@@ -57,6 +58,7 @@ class ApiService {
         "username": username,
         "email": email,
         "password": password,
+        "full_name": fullName, // kirim ke backend
       }),
     );
     return jsonDecode(response.body);

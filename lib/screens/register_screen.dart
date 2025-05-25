@@ -14,6 +14,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController fullNameController = TextEditingController();
+
   bool isLoading = false;
 
   // Fungsi validasi email
@@ -27,6 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> registerUser() async {
     final email = emailController.text.trim();
     final username = usernameController.text.trim();
+    final fullName = fullNameController.text.trim();
     final password = passwordController.text;
 
     if (!isValidEmail(email)) {
@@ -40,7 +43,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => isLoading = true);
 
-    final response = await ApiService.register(username, email, password);
+    final response = await ApiService.register(
+      username,
+      email,
+      password,
+      fullName,
+    );
 
     setState(() => isLoading = false);
 
@@ -83,6 +91,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
             // Gambar Header
             Image.asset("assets/TrashTech.png", height: 150),
             const SizedBox(height: 20),
+
+            TextField(
+              controller: fullNameController,
+              decoration: const InputDecoration(
+                labelText: "Nama Lengkap",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 10),
 
             // Form Registrasi
             TextField(
