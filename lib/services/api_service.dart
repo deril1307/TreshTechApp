@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
 
 class ApiService {
-  static const String baseUrl = "http://10.0.2.2:5000";
+  static const String baseUrl = "http://192.168.105.79:5000";
 
   static Future<List<dynamic>> getKategoriSampah() async {
     try {
@@ -140,5 +140,32 @@ class ApiService {
     } else {
       throw Exception("Gagal mengambil data leaderboard.");
     }
+  }
+
+  // reset password user
+  static Future<Map<String, dynamic>> requestResetCode(String email) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/request-reset-password"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email}),
+    );
+    return jsonDecode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> resetPassword(
+    String email,
+    String token,
+    String newPassword,
+  ) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/reset-password"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "email": email,
+        "token": token,
+        "new_password": newPassword,
+      }),
+    );
+    return jsonDecode(response.body);
   }
 }

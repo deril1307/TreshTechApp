@@ -1,4 +1,4 @@
-// ignore_for_file: await_only_futures
+// ignore_for_file: await_only_futures, unused_import
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tubes_mobile/screens/info_screen.dart';
@@ -9,11 +9,13 @@ import 'package:tubes_mobile/screens/penukaran_poin_screen.dart';
 import 'package:tubes_mobile/screens/setor_sampah_screen.dart';
 import 'package:tubes_mobile/screens/tarik_saldo_screen.dart';
 import 'package:tubes_mobile/screens/profile_screen.dart';
-import 'package:tubes_mobile/utils/connectivity_checker.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
 import 'package:tubes_mobile/services/api_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:tubes_mobile/screens/riwayat_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:tubes_mobile/utils/connectivity_checker.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -33,6 +35,16 @@ class _HomeScreenState extends State<HomeScreen> {
   String? profilePicture;
   late Timer _timer;
 
+  final Color primaryColor = const Color.fromARGB(255, 7, 168, 13);
+  final Color primaryLightColor = const Color.fromARGB(255, 66, 199, 73);
+  final Color primaryDarkColor = const Color.fromARGB(255, 4, 105, 9);
+  final Color scaffoldBgColor = const Color(0xFFF0F4F8);
+  final Color cardColor = Colors.white;
+  final Color titleTextColor = Colors.green.shade900;
+  final Color bodyTextColor = Colors.black.withOpacity(0.75);
+  final Color secondaryTextColor = Colors.grey.shade600;
+  final Color cardShadowColor = Colors.black.withOpacity(0.06);
+
   @override
   void initState() {
     super.initState();
@@ -47,35 +59,48 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUser() async {
-    String? savedUserId = SharedPrefs.getUserId();
-    String? savedUsername = SharedPrefs.getUsername();
-    double savedSaldo = SharedPrefs.getSaldo();
-    int savedPoin = SharedPrefs.getPoin();
-    String? savedProfilePicture = SharedPrefs.getProfilePicture();
+    if (!mounted) return;
+
+    if (!isLoading && (userId == null || username == null)) {
+      setState(() => isLoading = true);
+    }
+
+    String? savedUserId = await SharedPrefs.getUserId();
+    String? savedUsername = await SharedPrefs.getUsername();
+    double savedSaldo = await SharedPrefs.getSaldo();
+    int savedPoin = await SharedPrefs.getPoin();
+    String? savedProfilePicture = await SharedPrefs.getProfilePicture();
 
     if (savedUserId == null) {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
       return;
     }
 
-    setState(() {
-      userId = savedUserId;
-      username = savedUsername ?? "Default Username";
-      saldo = savedSaldo;
-      poin = savedPoin;
-      profilePicture = savedProfilePicture ?? "";
-      isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        userId = savedUserId;
+        username = savedUsername ?? "Pengguna";
+        saldo = savedSaldo;
+        poin = savedPoin;
+        profilePicture = savedProfilePicture;
+      });
+    }
 
-    // ignore: unnecessary_null_comparison
-    if (savedUsername == null || savedSaldo == null || savedPoin == null) {
+    // PERBAIKAN: Menggunakan Connectivity().checkConnectivity() secara langsung
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    // Versi terbaru connectivity_plus mengembalikan List<ConnectivityResult>
+    // Jadi kita cek jika tidak mengandung .none
+    if (!connectivityResult.contains(ConnectivityResult.none)) {
       try {
         var userData = await ApiService.getUserData(savedUserId);
         var userProfile = await ApiService.fetchUserProfile(savedUserId);
+
         if (mounted) {
           setState(() {
-            userId = savedUserId;
-            username = userData["username"] ?? savedUsername;
+            username =
+                (userProfile["full_name"]?.isEmpty ?? true)
+                    ? (savedUsername ?? "Pengguna")
+                    : userProfile["full_name"];
             profilePicture = userProfile["profile_picture"];
             saldo =
                 double.tryParse(userData["balance"].toString()) ?? savedSaldo;
@@ -85,15 +110,17 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         await SharedPrefs.saveUserData(userId!, username!, saldo, poin);
         await SharedPrefs.saveProfilePicture(profilePicture ?? "");
-        saldo = SharedPrefs.getSaldo();
-        poin = SharedPrefs.getPoin();
       } catch (e) {
+        print("Error fetching API data in HomeScreen: $e");
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+          });
+        }
+      }
+    } else {
+      if (mounted) {
         setState(() {
-          userId = savedUserId;
-          username = savedUsername;
-          saldo = savedSaldo;
-          poin = savedPoin;
-          profilePicture = savedProfilePicture ?? "";
           isLoading = false;
         });
       }
@@ -105,27 +132,37 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _startAutoRefresh() {
-    // Timer yang memanggil _refreshData setiap 5 detik
-    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
-      _refreshData();
+    _timer = Timer.periodic(const Duration(seconds: 15), (timer) {
+      if (mounted) _refreshData();
     });
   }
+
+  // ... Sisa dari widget build dan helper method lainnya (_buildHeaderSection, _buildBalanceCard, dll.)
+  // TETAP SAMA seperti versi UI yang telah disempurnakan sebelumnya.
+  // Anda hanya perlu memastikan metode _loadUser di atas yang digunakan.
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: scaffoldBgColor,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text(
           "TrashTechBank",
           style: GoogleFonts.poppins(
             fontWeight: FontWeight.bold,
-            fontSize: 20,
+            fontSize: 22,
             color: Colors.white,
           ),
         ),
-        backgroundColor: const Color.fromARGB(255, 7, 168, 13),
+        backgroundColor: primaryColor,
+        elevation: 2.0,
         leading: IconButton(
-          icon: Icon(Icons.notifications, color: Colors.white),
+          icon: const Icon(
+            Icons.notifications_outlined,
+            color: Colors.white,
+            size: 26,
+          ),
           onPressed: () {
             Navigator.push(
               context,
@@ -134,163 +171,186 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
         actions: [
-          IconButton(
-            icon: CircleAvatar(
-              radius: 18,
-              backgroundImage:
-                  profilePicture != null && profilePicture!.isNotEmpty
-                      ? NetworkImage(profilePicture!)
-                      : AssetImage('assets/images/default_profile.png')
-                          as ImageProvider,
-              backgroundColor: Colors.white,
+          Padding(
+            padding: const EdgeInsets.only(right: 10.0),
+            child: IconButton(
+              icon: Hero(
+                tag: 'profileAvatar',
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.white.withOpacity(0.8),
+                  backgroundImage:
+                      (profilePicture != null && profilePicture!.isNotEmpty)
+                          ? CachedNetworkImageProvider(profilePicture!)
+                          : const AssetImage(
+                                'assets/images/default_profile.png',
+                              )
+                              as ImageProvider,
+                  child:
+                      (profilePicture == null || profilePicture!.isEmpty)
+                          ? const Icon(
+                            Icons.person,
+                            color: Colors.grey,
+                            size: 20,
+                          )
+                          : null,
+                ),
+              ),
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                );
+                if (result == true || result == null && mounted) {
+                  _refreshData();
+                }
+              },
             ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => ProfileScreen()),
-              );
-            },
           ),
-          SizedBox(width: 10),
         ],
       ),
       body: Stack(
         children: [
           RefreshIndicator(
             onRefresh: _refreshData,
+            color: primaryColor,
             child:
-                isLoading
-                    ? Center(child: CircularProgressIndicator())
+                isLoading && userId == null
+                    ? Center(
+                      child: CircularProgressIndicator(color: primaryColor),
+                    )
                     : SingleChildScrollView(
-                      physics: AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 15,
-                        vertical: 20,
-                      ),
+                      physics: const AlwaysScrollableScrollPhysics(),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(height: 20),
-                          Text(
-                            username != null ? "Hi, $username!" : "Hi!",
-                            style: GoogleFonts.poppins(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green[800],
-                            ),
-                          ),
-                          SizedBox(height: 30),
-                          _buildBalanceCard(),
-                          SizedBox(height: 30),
+                          _buildHeaderSection(),
                           _buildMenuGrid(),
+                          _buildAktivitasTerbaruCard(),
+                          const SizedBox(height: 20),
                         ],
                       ),
                     ),
           ),
-          ConnectivityChecker(),
+          const ConnectivityChecker(), // Widget Anda untuk menampilkan status koneksi
         ],
       ),
     );
   }
 
-  // card
-  Widget _buildBalanceCard() {
+  Widget _buildHeaderSection() {
     return Container(
-      width: double.infinity,
-      margin: EdgeInsets.symmetric(vertical: 8),
-      padding: EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 25),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color.fromARGB(255, 63, 168, 69), // hijau uang
-            const Color.fromARGB(255, 13, 141, 19),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(5),
+        color: primaryLightColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 12,
-            offset: Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Judul
+          Text(
+            username != null
+                ? "Halo, ${username!.split(" ").first}!"
+                : "Selamat Datang!",
+            style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "Kelola sampah, dapatkan poinnya",
+            style: GoogleFonts.poppins(
+              fontSize: 15,
+              color: Colors.white.withOpacity(0.9),
+            ),
+          ),
+          const SizedBox(height: 24),
+          _buildBalanceCard(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBalanceCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [primaryDarkColor, primaryColor],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Saldo & Poin Anda",
+                "Total Aset Anda",
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white.withOpacity(0.9),
+                ),
+              ),
+              Icon(
+                FontAwesomeIcons.wallet,
+                color: Colors.white.withOpacity(0.8),
+                size: 22,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            "Rp ${saldo.toStringAsFixed(0)}",
+            style: GoogleFonts.poppins(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              letterSpacing: 1.1,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Divider(color: Colors.white.withOpacity(0.2), thickness: 0.8),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(
+                FontAwesomeIcons.solidStar,
+                color: Colors.yellowAccent.shade700,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                "$poin Poin Reward",
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
               ),
-              Icon(Icons.account_balance_wallet, color: Colors.white, size: 24),
             ],
-          ),
-          SizedBox(height: 15),
-
-          // Saldo
-          Container(
-            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Rp ${saldo.toStringAsFixed(2)}",
-                  style: GoogleFonts.poppins(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.lightGreenAccent,
-                  ),
-                ),
-                Icon(
-                  Icons.monetization_on,
-                  color: Colors.yellowAccent,
-                  size: 26,
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 10),
-
-          // Poin
-          Container(
-            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.deepPurpleAccent.withOpacity(0.3),
-                  Colors.blueAccent.withOpacity(0.3),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "$poin TrashTechPoin",
-                  style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-                Icon(Icons.star, color: Colors.amberAccent, size: 24),
-              ],
-            ),
           ),
         ],
       ),
@@ -298,24 +358,34 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMenuGrid() {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(16), // Tambahkan padding agar tidak mepet
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4.0, bottom: 16),
+            child: Text(
+              "Menu Layanan",
+              style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: titleTextColor,
+              ),
+            ),
+          ),
           GridView.count(
             crossAxisCount: 4,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 0.9,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 0.85,
             shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
+            physics: const NeverScrollableScrollPhysics(),
             children: [
-              // Menu Tukar
               _buildMenuItem(
-                label: "Tukar",
-                icon: FontAwesomeIcons.gift,
-                color: Colors.red,
+                label: "Tukar Poin",
+                icon: FontAwesomeIcons.gifts,
+                color: Colors.redAccent.shade400,
                 onTap: () {
                   Navigator.push(
                     context,
@@ -323,12 +393,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
-
-              // Menu Tarik
               _buildMenuItem(
-                label: "Tarik",
-                icon: FontAwesomeIcons.wallet,
-                color: Colors.green,
+                label: "Tarik Saldo",
+                icon: FontAwesomeIcons.moneyBillWave,
+                color: primaryColor,
                 onTap: () {
                   Navigator.push(
                     context,
@@ -336,38 +404,36 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
-
-              // Menu Kategori
               _buildMenuItem(
                 label: "Kategori",
-                icon: FontAwesomeIcons.trashAlt,
-                color: Colors.purple,
+                icon: FontAwesomeIcons.shapes,
+                color: Colors.purple.shade400,
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => KategoriSampahScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const KategoriSampahScreen(),
+                    ),
                   );
                 },
               ),
-
-              // Menu Setor
               _buildMenuItem(
                 label: "Setor",
-                icon: FontAwesomeIcons.recycle,
-                color: Colors.orange,
+                icon: FontAwesomeIcons.boxOpen,
+                color: Colors.orange.shade700,
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => SetorSampahScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const SetorSampahScreen(),
+                    ),
                   );
                 },
               ),
-
-              // Menu Info
               _buildMenuItem(
                 label: "Info",
-                icon: FontAwesomeIcons.infoCircle,
-                color: Colors.blue,
+                icon: FontAwesomeIcons.circleInfo,
+                color: Colors.blue.shade600,
                 onTap: () {
                   Navigator.push(
                     context,
@@ -375,24 +441,40 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
-
-              // Menu Leaderboard
               _buildMenuItem(
-                label: "Rank",
+                label: "Peringkat",
                 icon: FontAwesomeIcons.trophy,
-                color: Colors.amber,
+                color: Colors.amber.shade600,
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => LeaderboardScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const LeaderboardScreen(),
+                    ),
                   );
+                },
+              ),
+              _buildMenuItem(
+                label: "Riwayat",
+                icon: FontAwesomeIcons.history,
+                color: Colors.teal.shade500,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => RiwayatScreen()),
+                  );
+                },
+              ),
+              _buildMenuItem(
+                label: "Lainnya",
+                icon: FontAwesomeIcons.ellipsisH,
+                color: Colors.grey.shade600,
+                onTap: () {
+                  // Aksi untuk menu lainnya
                 },
               ),
             ],
           ),
-          SizedBox(height: 24),
-          _buildAktivitasTerbaruCard(),
-          SizedBox(height: 24), // Tambahan spacing bawah
         ],
       ),
     );
@@ -404,109 +486,191 @@ class _HomeScreenState extends State<HomeScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Container(
-      padding: EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
-        ],
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      elevation: 2.0,
+      shadowColor: cardShadowColor,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        splashColor: color.withOpacity(0.2),
+        highlightColor: color.withOpacity(0.1),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: FaIcon(icon, color: color, size: 26),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: titleTextColor.withOpacity(0.9),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
       ),
-      child: _buildMiniMenuButton(label, icon, color, onTap),
     );
   }
 
   Widget _buildAktivitasTerbaruCard() {
-    List<Map<String, String>> aktivitas = [
-      {"judul": "Setor Sampah Organik", "tanggal": "5 Mei 2025"},
-      {"judul": "Tukar Poin dengan Voucher", "tanggal": "3 Mei 2025"},
-      {"judul": "Tarik Saldo ke Dana", "tanggal": "1 Mei 2025"},
-    ];
+    List<Map<String, String>> aktivitas =
+        SharedPrefs.getRiwayat().reversed.toList();
 
-    Icon _getIcon(String judul) {
-      if (judul.toLowerCase().contains("setor")) {
-        return Icon(Icons.delete, color: Colors.orange); // ikon sampah
-      } else if (judul.toLowerCase().contains("tarik")) {
-        return Icon(
-          Icons.account_balance_wallet,
-          color: Colors.green,
-        ); // ikon dompet
-      } else if (judul.toLowerCase().contains("tukar")) {
-        return Icon(Icons.attach_money, color: Colors.red); // ikon uang
-      } else {
-        return Icon(Icons.history, color: Colors.grey); // default
-      }
+    IconData _getIconForActivity(String? kegiatan) {
+      if (kegiatan == null) return FontAwesomeIcons.history;
+      String lowerKegiatan = kegiatan.toLowerCase();
+      if (lowerKegiatan.contains("setor")) return FontAwesomeIcons.recycle;
+      if (lowerKegiatan.contains("tarik saldo"))
+        return FontAwesomeIcons.moneyBillTransfer;
+      if (lowerKegiatan.contains("penukaran poin"))
+        return FontAwesomeIcons.gifts;
+      return FontAwesomeIcons.history;
     }
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(16),
-      margin: EdgeInsets.symmetric(horizontal: 5),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Aktivitas Terbaru",
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-          ),
-          SizedBox(height: 12),
-          ...aktivitas.map(
-            (item) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: _getIcon(item["judul"]!),
-              title: Text(
-                item["judul"]!,
-                style: GoogleFonts.poppins(fontSize: 14),
-              ),
-              subtitle: Text(
-                item["tanggal"]!,
-                style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+    Color _getColorForActivity(String? kegiatan) {
+      if (kegiatan == null) return Colors.grey.shade400;
+      String lowerKegiatan = kegiatan.toLowerCase();
+      if (lowerKegiatan.contains("setor")) return Colors.orange.shade700;
+      if (lowerKegiatan.contains("tarik saldo")) return primaryDarkColor;
+      if (lowerKegiatan.contains("penukaran poin"))
+        return Colors.redAccent.shade400;
+      return Colors.grey.shade600;
+    }
 
-  // Mini button widget for each menu item
-  Widget _buildMiniMenuButton(
-    String title,
-    IconData icon,
-    Color color,
-    Function onTap,
-  ) {
-    return GestureDetector(
-      onTap: () => onTap(),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 40),
-          SizedBox(height: 8),
-          Text(
-            title,
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: cardShadowColor,
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Aktivitas Terbaru",
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: titleTextColor,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => RiwayatScreen()),
+                    );
+                  },
+                  child: Text(
+                    "Lihat Semua",
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: primaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (aktivitas.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20.0),
+                child: Center(
+                  child: Text(
+                    "Belum ada aktivitas terbaru.",
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: secondaryTextColor,
+                    ),
+                  ),
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: aktivitas.length > 3 ? 3 : aktivitas.length,
+                itemBuilder: (context, index) {
+                  final item = aktivitas[index];
+                  final iconData = _getIconForActivity(item["kegiatan"]);
+                  final iconColor = _getColorForActivity(item["kegiatan"]);
+                  String formattedDate = "Tanggal tidak valid";
+                  if (item["tanggal"] != null) {
+                    try {
+                      DateTime parsedDate = DateTime.parse(item["tanggal"]!);
+                      formattedDate =
+                          "${parsedDate.day}/${parsedDate.month}/${parsedDate.year}";
+                    } catch (e) {
+                      // Biarkan
+                    }
+                  }
+
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 6.0,
+                      horizontal: 0,
+                    ),
+                    leading: CircleAvatar(
+                      backgroundColor: iconColor.withOpacity(0.15),
+                      child: FaIcon(iconData, color: iconColor, size: 18),
+                      radius: 22,
+                    ),
+                    title: Text(
+                      item["kegiatan"] ?? 'Aktivitas',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w500,
+                        color: bodyTextColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      formattedDate,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: secondaryTextColor,
+                      ),
+                    ),
+                  );
+                },
+                separatorBuilder:
+                    (context, index) =>
+                        Divider(color: Colors.grey.shade200, height: 1),
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tubes_mobile/screens/register_screen.dart';
+import 'package:tubes_mobile/screens/requestreset_screen.dart';
 import 'package:tubes_mobile/services/api_service.dart';
 import 'package:tubes_mobile/screens/home_screen.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
@@ -143,6 +144,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(fontSize: 16, color: Colors.white),
                     ),
                   ),
+              TextButton(
+                onPressed:
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => RequestResetScreen()),
+                    ),
+                child: Text(
+                  "Lupa password?",
+                  style: TextStyle(color: Colors.red[700]),
+                ),
+              ),
+
               TextButton(
                 onPressed:
                     () => Navigator.push(

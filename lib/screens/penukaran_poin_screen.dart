@@ -224,7 +224,7 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
                         ),
                         SizedBox(height: 20),
                         Divider(thickness: 1.5),
-                        SizedBox(height: 20),
+                        SizedBox(height: 10),
                         Text(
                           "Saldo Anda",
                           style: GoogleFonts.poppins(fontSize: 18),

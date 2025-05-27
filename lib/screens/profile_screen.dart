@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:tubes_mobile/services/api_service.dart';
+// ignore_for_file: unused_import, unnecessary_null_comparison
 
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:tubes_mobile/services/api_service.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
 import 'package:tubes_mobile/screens/login_screen.dart';
-import 'package:tubes_mobile/screens/edit_profile_screen.dart';
+import 'package:tubes_mobile/screens/edit_profile_screen.dart'; // Pastikan EditProfilePage ada di sini
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -23,6 +25,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? profilePicture;
   bool isLoading = true;
 
+  final Color appBarColor = const Color.fromARGB(255, 38, 198, 38);
+  final Color primaryAccentColor = const Color.fromARGB(255, 27, 154, 27);
+  final Color scaffoldBgColor = const Color(0xFFF0F4F8);
+  final Color cardColor = Colors.white;
+  final Color titleTextColor = Colors.green.shade900;
+  final Color bodyTextColor = Colors.black.withOpacity(0.75);
+  final Color secondaryTextColor = Colors.grey.shade600;
+  final Color placeholderColor = Colors.grey.shade400;
+  final Color cardShadowColor = Colors.black.withOpacity(
+    0.05,
+  ); // const Color.fromARGB(13, 0, 0, 0)
+
   @override
   void initState() {
     super.initState();
@@ -30,48 +44,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadUserData() async {
+    if (!mounted) return;
     setState(() => isLoading = true);
     String? userId = await SharedPrefs.getUserId();
 
     if (userId == null) {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
       return;
     }
 
-    // Ambil data lokal dulu
     var savedProfile = await SharedPrefs.getUserProfile();
     var savedBalance = await SharedPrefs.getUserBalance();
     var savedPoints = await SharedPrefs.getUserPoints();
     bool localDataAvailable =
-        // ignore: unnecessary_null_comparison
         savedProfile != null && savedBalance != null && savedPoints != null;
+
     if (localDataAvailable) {
-      // Tampilkan data dari SharedPrefs
       if (mounted) {
         setState(() {
-          username = savedProfile["full_name"] ?? "New User";
+          username = savedProfile["full_name"] ?? "Pengguna Baru";
           phoneNumber = savedProfile["phone_number"] ?? "Belum diinput";
           address = savedProfile["address"] ?? "Belum diinput";
           profilePicture = savedProfile["profile_picture"];
-          saldo = double.tryParse(savedBalance) ?? 0.00;
-          poin = int.tryParse(savedPoints) ?? 0;
+          saldo = double.tryParse(savedBalance.toString()) ?? 0.00;
+          poin = int.tryParse(savedPoints.toString()) ?? 0;
         });
       }
     }
 
-    // Jika ada koneksi, coba ambil data terbaru dari API
-    var connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult != ConnectivityResult.none) {
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    if (!connectivityResult.contains(ConnectivityResult.none)) {
       try {
         var results = await Future.wait([
           ApiService.getUserData(userId),
           ApiService.fetchUserProfile(userId),
         ]);
 
-        var userData = results[0];
-        var userProfile = results[1];
+        // PERBAIKAN: Menghapus cast yang tidak perlu jika tipe sudah sesuai
+        var userData =
+            results[0]; // Jika ApiService.getUserData sudah Future<Map<String, dynamic>>
+        var userProfile =
+            results[1]; // Jika ApiService.fetchUserProfile sudah Future<Map<String, dynamic>>
+        // Atau biarkan sebagai dynamic jika itu tipe returnnya
 
-        await SharedPrefs.saveUserProfile(userProfile);
+        // Jika Anda ingin tetap aman dengan tipe, dan results adalah List<dynamic>:
+        // final Map<String, dynamic> userData = Map<String, dynamic>.from(results[0] as Map);
+        // final Map<String, dynamic> userProfile = Map<String, dynamic>.from(results[1] as Map);
+        // Namun, jika linter mengatakan tidak perlu, berarti `results[0]` sudah bisa diakses sebagai Map.
+
+        await SharedPrefs.saveUserProfile(
+          // ignore: unnecessary_cast
+          userProfile as Map<String, dynamic>,
+        ); // Cast di sini mungkin masih perlu jika userProfile adalah dynamic
         await SharedPrefs.saveUserBalance(userData["balance"]?.toString());
         await SharedPrefs.saveUserPoints(userData["points"]?.toString());
 
@@ -79,7 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           setState(() {
             username =
                 (userProfile["full_name"]?.isEmpty ?? true)
-                    ? "New User"
+                    ? "Pengguna Baru"
                     : userProfile["full_name"];
             phoneNumber =
                 (userProfile["phone_number"]?.isEmpty ?? true)
@@ -90,7 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ? "Belum diinput"
                     : userProfile["address"];
             profilePicture =
-                userProfile["profile_picture"]?.isEmpty ?? true
+                (userProfile["profile_picture"]?.isEmpty ?? true)
                     ? null
                     : userProfile["profile_picture"];
             saldo =
@@ -100,47 +124,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
           });
         }
       } catch (e) {
-        print("Gagal memuat data user dari APi, Ambil Dari Lokal: $e");
+        print(
+          "Gagal memuat data user dari API, menggunakan data lokal jika ada: $e",
+        );
       }
     }
-
     if (mounted) setState(() => isLoading = false);
   }
 
-  /// Menampilkan konfirmasi sebelum logout
   void _confirmLogout() {
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text("Konfirmasi Logout"),
-            content: Text("Apakah Anda yakin ingin logout?"),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Text(
+              "Konfirmasi Logout",
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                color: titleTextColor,
+              ),
+            ),
+            content: Text(
+              "Apakah Anda yakin ingin keluar dari akun ini?",
+              style: GoogleFonts.poppins(color: secondaryTextColor),
+            ),
+            actionsPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: Text("Batal", style: TextStyle(color: Colors.grey[700])),
+                child: Text(
+                  "Batal",
+                  style: GoogleFonts.poppins(
+                    color: secondaryTextColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
+                  backgroundColor: Colors.red.shade700,
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
                   ),
                 ),
                 onPressed: () async {
-                  Navigator.of(context).pop(); // Tutup dialog
+                  Navigator.of(context).pop();
                   await SharedPrefs.clearUserData();
                   if (mounted) {
-                    Navigator.pushReplacement(
+                    Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(builder: (context) => LoginScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
+                      (Route<dynamic> route) => false,
                     );
                   }
                 },
-                child: Text("Logout"),
+                child: Text(
+                  "Logout",
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
@@ -150,241 +204,443 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 245, 245, 245),
+      backgroundColor: scaffoldBgColor,
       appBar: AppBar(
-        title: Text("Profil", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: const Color.fromARGB(255, 38, 198, 38),
+        title: Text(
+          "Profil Saya",
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: appBarColor,
+        elevation: 1.0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Stack(
-        children: [
-          RefreshIndicator(
-            onRefresh: _loadUserData,
-            child:
-                isLoading
-                    ? Center(child: CircularProgressIndicator())
-                    : SingleChildScrollView(
-                      physics: AlwaysScrollableScrollPhysics(),
-                      child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            // Container Profil (Foto + Info)
-                            Container(
-                              width: double.infinity,
-                              padding: EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  // Foto Profil
-                                  _buildProfilePicture(),
-                                  SizedBox(width: 16),
-
-                                  // Nama dan Tombol Edit
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          username ?? "Pengguna",
-                                          style: TextStyle(
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.green[900],
-                                          ),
-                                        ),
-                                        SizedBox(height: 8),
-                                        _buildActionButton(
-                                          "Edit Profil",
-                                          Color(0xFF2E7D32),
-                                          () async {
-                                            await Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder:
-                                                    (context) =>
-                                                        EditProfilePage(),
-                                              ),
-                                            );
-                                            _loadUserData();
-                                          },
-                                          isSmall: true,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            SizedBox(height: 20),
-
-                            // Poin & Saldo
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Container(
-                                    padding: EdgeInsets.all(16),
-                                    margin: EdgeInsets.only(right: 8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: _buildInfoRow(
-                                      "Poin Anda",
-                                      "$poin Poin",
-                                      Icons.star,
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Container(
-                                    padding: EdgeInsets.all(16),
-                                    margin: EdgeInsets.only(left: 8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: _buildInfoRow(
-                                      "Saldo",
-                                      "Rp ${saldo.toStringAsFixed(2)}",
-                                      Icons.attach_money,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            SizedBox(height: 16),
-
-                            // Nomor Telepon & Alamat
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Container(
-                                    padding: EdgeInsets.all(16),
-                                    margin: EdgeInsets.only(right: 8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: _buildInfoRow(
-                                      "Nomor Telepon",
-                                      phoneNumber ?? "-",
-                                      Icons.phone,
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Container(
-                                    padding: EdgeInsets.all(16),
-                                    margin: EdgeInsets.only(left: 8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: _buildInfoRow(
-                                      "Alamat",
-                                      address ?? "-",
-                                      Icons.location_on,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            SizedBox(height: 20),
-
-                            // Logout
-                            _buildActionButton(
-                              "Logout",
-                              Colors.red,
-                              _confirmLogout,
-                            ),
-                          ],
-                        ),
+      body: RefreshIndicator(
+        onRefresh: _loadUserData,
+        color: primaryAccentColor,
+        child:
+            isLoading
+                ? Center(
+                  child: CircularProgressIndicator(color: primaryAccentColor),
+                )
+                : username == null && !isLoading
+                ? _buildLoginPrompt()
+                : SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildProfileHeaderCard(),
+                      const SizedBox(height: 20),
+                      _buildStatsRow(),
+                      const SizedBox(height: 20),
+                      _buildInfoDetailsCard(),
+                      const SizedBox(height: 24),
+                      _buildActionButton(
+                        "Logout Akun",
+                        Colors.red.shade600,
+                        _confirmLogout,
+                        icon: Icons.logout_rounded,
+                        isFullWidth: true,
                       ),
-                    ),
+                      const SizedBox(height: 10),
+                    ],
+                  ),
+                ),
+      ),
+    );
+  }
+
+  Widget _buildLoginPrompt() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(30.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.person_off_outlined,
+              size: 80,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              "Anda Belum Login",
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: titleTextColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Silakan login untuk melihat dan mengelola profil Anda.",
+              style: GoogleFonts.poppins(
+                fontSize: 15,
+                color: secondaryTextColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            _buildActionButton(
+              "Login Sekarang",
+              primaryAccentColor,
+              () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (Route<dynamic> route) => false,
+                );
+              },
+              icon: Icons.login_rounded,
+              isFullWidth: false,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileHeaderCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: cardShadowColor,
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _buildProfilePicture(),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  username ?? "Pengguna",
+                  style: GoogleFonts.poppins(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: titleTextColor,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 10),
+                _buildActionButton(
+                  "Edit Profil",
+                  primaryAccentColor,
+                  () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        // PERBAIKAN: Menghapus 'const' jika EditProfilePage tidak punya const constructor
+                        builder: (context) => EditProfilePage(),
+                      ),
+                    );
+                    if (result == true && mounted) {
+                      _loadUserData();
+                    }
+                  },
+                  isSmall: true,
+                  icon: Icons.edit_note_rounded,
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  // Tambahan opsional: ubah _buildActionButton untuk mendukung ukuran kecil
+  Widget _buildStatsRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStatItem(
+            "Poin Anda",
+            "$poin Poin",
+            Icons.star_border_purple500_rounded,
+            Colors.amber.shade700,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildStatItem(
+            "Saldo Anda",
+            "Rp ${saldo.toStringAsFixed(0)}",
+            Icons.account_balance_wallet_outlined,
+            primaryAccentColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatItem(
+    String title,
+    String value,
+    IconData icon,
+    Color iconColor,
+  ) {
+    bool isPlaceholder =
+        (title.contains("Poin") &&
+            poin == 0 &&
+            (username != "Pengguna Baru" && username != null)) ||
+        (title.contains("Saldo") &&
+            saldo == 0.00 &&
+            (username != "Pengguna Baru" && username != null));
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: cardShadowColor,
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: iconColor, size: 24),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: secondaryTextColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color:
+                  isPlaceholder
+                      ? placeholderColor.withOpacity(0.8)
+                      : titleTextColor,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoDetailsCard() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: cardShadowColor,
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildInfoRow(
+            "Nomor Telepon",
+            phoneNumber ?? "Belum diinput",
+            Icons.phone_iphone_rounded,
+            primaryAccentColor,
+          ),
+          Divider(
+            color: Colors.grey.shade200,
+            height: 20,
+            thickness: 0.8,
+            indent: 16,
+            endIndent: 16,
+          ),
+          _buildInfoRow(
+            "Alamat Lengkap",
+            address ?? "Belum diinput",
+            Icons.location_city_rounded,
+            primaryAccentColor,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildActionButton(
     String label,
     Color color,
     VoidCallback onPressed, {
     bool isSmall = false,
+    IconData? icon,
+    bool isFullWidth = false,
   }) {
     return SizedBox(
-      height: isSmall ? 36 : 48,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          padding:
-              isSmall
-                  ? EdgeInsets.symmetric(horizontal: 12, vertical: 8)
-                  : EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-        onPressed: onPressed,
-        child: Text(
+      height: isSmall ? 40 : 50,
+      width: isFullWidth ? double.infinity : (isSmall ? null : double.infinity),
+      child: ElevatedButton.icon(
+        icon:
+            icon != null
+                ? Icon(icon, size: isSmall ? 18 : 20, color: Colors.white)
+                : const SizedBox.shrink(),
+        label: Text(
           label,
-          style: TextStyle(
+          style: GoogleFonts.poppins(
             color: Colors.white,
             fontSize: isSmall ? 14 : 16,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
+          textAlign: TextAlign.center,
         ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: EdgeInsets.symmetric(
+            horizontal: isSmall ? 16 : 20,
+            vertical: isSmall ? 8 : 10,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          elevation: 2,
+          tapTargetSize: MaterialTapTargetSize.padded,
+        ),
+        onPressed: onPressed,
       ),
     );
   }
 
   Widget _buildProfilePicture() {
-    return CircleAvatar(
-      radius: 50,
-      backgroundColor: Colors.white,
-      backgroundImage:
-          (profilePicture != null && profilePicture!.isNotEmpty)
-              ? CachedNetworkImageProvider(profilePicture!)
-              : AssetImage('assets/images/default_profile.png')
-                  as ImageProvider,
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: primaryAccentColor.withOpacity(0.3),
+            blurRadius: 8,
+            spreadRadius: 2,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: CircleAvatar(
+        radius: 52,
+        backgroundColor: primaryAccentColor.withOpacity(0.15),
+        child: CircleAvatar(
+          radius: 48,
+          backgroundColor: Colors.grey.shade200,
+          backgroundImage:
+              (profilePicture != null && profilePicture!.isNotEmpty)
+                  ? CachedNetworkImageProvider(profilePicture!)
+                  : null,
+          child:
+              (profilePicture == null || profilePicture!.isEmpty)
+                  ? Icon(
+                    Icons.person_outline_rounded,
+                    size: 50,
+                    color: Colors.grey.shade500,
+                  )
+                  : null,
+        ),
+      ),
     );
   }
 
-  Widget _buildInfoRow(String title, String value, IconData icon) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: Colors.green[700]),
-        SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildInfoRow(
+    String title,
+    String value,
+    IconData icon,
+    Color iconColor,
+  ) {
+    bool isPlaceholderValue = (value == "Belum diinput" || value == "-");
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          // Aksi edit bisa ditambahkan di sini jika diperlukan
+        },
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                title,
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: iconColor, size: 20),
               ),
-              SizedBox(height: 4),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green[900],
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: secondaryTextColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      value,
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight:
+                            isPlaceholderValue
+                                ? FontWeight.normal
+                                : FontWeight.w600,
+                        color:
+                            isPlaceholderValue
+                                ? placeholderColor
+                                : titleTextColor,
+                        fontStyle:
+                            isPlaceholderValue
+                                ? FontStyle.italic
+                                : FontStyle.normal,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 }

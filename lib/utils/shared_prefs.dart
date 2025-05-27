@@ -139,8 +139,18 @@ class SharedPrefs {
 
   static Future<void> clearUserData() async {
     if (!_isInitialized()) return;
-    await _prefs!.clear();
-    print("🗑 Semua data user dihapus dari SharedPreferences");
+
+    // Hapus hanya data user
+    await _prefs!.remove("user_id");
+    await _prefs!.remove("username");
+    await _prefs!.remove("saldo");
+    await _prefs!.remove("poin");
+    await _prefs!.remove("user_profile");
+    await _prefs!.remove("profile_picture");
+    await _prefs!.remove("user_balance");
+    await _prefs!.remove("user_points");
+
+    print("✅ Data user dihapus, riwayat tetap aman.");
   }
 
   // Riwayat Notifikasi
