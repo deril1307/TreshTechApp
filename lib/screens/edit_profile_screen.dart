@@ -7,7 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'profile_screen.dart';
 
-const String baseUrl = "http://192.168.105.79:5000";
+const String baseUrl = "http://10.0.2.2:5000";
 
 class EditProfilePage extends StatefulWidget {
   @override

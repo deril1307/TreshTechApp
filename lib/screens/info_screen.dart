@@ -18,19 +18,18 @@ class InfoScreen extends StatelessWidget {
           "Info Pengelolaan Sampah",
           style: GoogleFonts.poppins(
             fontWeight: FontWeight.bold,
-            color: Colors.white, // Pastikan teks AppBar putih
+            color: Colors.white,
           ),
         ),
         backgroundColor: primaryColor,
-        elevation: 1.0, // Elevasi AppBar yang halus
+        elevation: 1.0,
       ),
       body: SingleChildScrollView(
         // Scroll default adalah vertikal
-        physics: const BouncingScrollPhysics(), // Efek scroll yang lebih modern
-        // Padding untuk seluruh konten yang bisa di-scroll
+        physics: const BouncingScrollPhysics(),
+
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
         child: Column(
-          // Kartu akan mengambil lebar penuh (dikurangi padding horizontal)
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildInfoCard(
@@ -44,9 +43,7 @@ class InfoScreen extends StatelessWidget {
             _buildJenisSampahCard(context),
             const SizedBox(height: 20),
             _buildTipsCard(context),
-            const SizedBox(
-              height: 20,
-            ), // Sedikit padding di bagian bawah scroll
+            const SizedBox(height: 20),
           ],
         ),
       ),

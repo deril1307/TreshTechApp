@@ -35,7 +35,7 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
     focusedBorder: OutlineInputBorder(
       // Border saat fokus
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Colors.green.shade600, width: 2),
+      borderSide: BorderSide(color: Color.fromARGB(255, 7, 168, 13), width: 2),
     ),
     hintStyle: GoogleFonts.poppins(color: Colors.grey.shade500), // Hint style
   );
@@ -375,7 +375,12 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
             color: Colors.white,
           ),
         ),
-        backgroundColor: Colors.green.shade600, // Warna hijau lebih modern
+        backgroundColor: Color.fromARGB(
+          255,
+          7,
+          168,
+          13,
+        ), // Warna hijau lebih modern
         foregroundColor: Colors.white, // Warna ikon dan teks tombol kembali
         elevation: 2, // Sedikit shadow
         shape: const RoundedRectangleBorder(

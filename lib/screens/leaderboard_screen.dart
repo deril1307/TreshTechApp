@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart'; // Jangan lupa import
 import '../services/api_service.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Untuk placeholder yang lebih baik
+import 'package:flutter/services.dart'; // Untuk SystemUiOverlayStyle
 
 class LeaderboardScreen extends StatefulWidget {
-  const LeaderboardScreen({super.key}); // Tambahkan const jika memungkinkan
+  const LeaderboardScreen({super.key});
 
   @override
   _LeaderboardScreenState createState() => _LeaderboardScreenState();
@@ -17,15 +18,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   bool isLoading = true;
   String? error;
 
-  // Definisikan warna tema untuk konsistensi
-  final Color primaryColor = const Color.fromARGB(255, 7, 168, 13);
-  final Color scaffoldBgColor = Colors.green.shade50;
+  final Color primaryColor = Color.fromARGB(255, 7, 168, 13);
+  final Color scaffoldBgColor = Colors.grey.shade100;
   final Color secondaryTextColor = Colors.grey.shade700;
   final Color darkTextColor = Colors.black87;
   final Color listBgColor = Colors.white;
-  final Color goldColor = const Color(0xFFFFD700);
-  final Color silverColor = const Color(0xFFC0C0C0);
-  final Color bronzeColor = const Color(0xFFCD7F32);
+  final Color goldColor = const Color(0xFFE6B400);
+  final Color silverColor = const Color(0xFFB0B0B0);
+  final Color bronzeColor = const Color(0xFFA05A2C);
 
   @override
   void initState() {
@@ -37,13 +37,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     if (!mounted) return;
     setState(() {
       isLoading = true;
-      error = null; // Reset error state
+      error = null;
     });
     try {
       final data = await ApiService.getLeaderboard();
       if (!mounted) return;
       setState(() {
-        // Urutkan data berdasarkan poin secara descending jika belum diurutkan dari API
         data.sort((a, b) => (b['points'] as int).compareTo(a['points'] as int));
         leaderboardData = data;
         isLoading = false;
@@ -51,7 +50,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        error = e.toString();
+        error =
+            "Gagal memuat data. Periksa koneksi internet Anda."; // Pesan error lebih ramah
         isLoading = false;
       });
     }
@@ -65,23 +65,23 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.error_outline_rounded,
-              color: Colors.red.shade300,
-              size: 70,
+              Icons.wifi_off_rounded, // Icon lebih relevan
+              color: Colors.red.shade400, // Warna lebih kontras
+              size: 80,
             ),
             const SizedBox(height: 20),
             Text(
-              "Oops, terjadi kesalahan!",
+              "Oops, Koneksi Bermasalah!",
               style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+                fontSize: 20, // Ukuran font disesuaikan
+                fontWeight: FontWeight.bold,
                 color: darkTextColor,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
-              "Gagal memuat data. Periksa koneksi internet Anda.",
+              errorMessage,
               style: GoogleFonts.poppins(
                 fontSize: 15,
                 color: secondaryTextColor,
@@ -90,12 +90,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              icon: const Icon(Icons.refresh, color: Colors.white),
+              icon: const Icon(Icons.refresh_rounded, color: Colors.white),
               label: Text(
                 "Coba Lagi",
                 style: GoogleFonts.poppins(
                   color: Colors.white,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600, // Lebih tebal
                 ),
               ),
               onPressed: fetchLeaderboard,
@@ -105,9 +105,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
+                  horizontal: 30, // Padding disesuaikan
+                  vertical: 14,
                 ),
+                elevation: 3,
               ),
             ),
           ],
@@ -124,23 +125,23 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.people_outline_rounded,
-              color: Colors.grey.shade400,
-              size: 70,
+              Icons.people_alt_outlined, // Icon yang lebih sesuai
+              color: Colors.grey.shade500, // Warna lebih lembut
+              size: 80,
             ),
             const SizedBox(height: 20),
             Text(
-              "Data Leaderboard Belum Cukup",
+              "Data Belum Cukup",
               style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
                 color: darkTextColor,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
-              "Minimal 3 pengguna dibutuhkan untuk menampilkan podium.",
+              "Minimal 3 pengguna aktif dibutuhkan untuk menampilkan podium dan peringkat.",
               style: GoogleFonts.poppins(
                 fontSize: 15,
                 color: secondaryTextColor,
@@ -149,25 +150,62 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              icon: const Icon(Icons.refresh, color: Colors.white),
+              icon: const Icon(Icons.refresh_rounded, color: Colors.white),
               label: Text(
                 "Refresh Data",
                 style: GoogleFonts.poppins(
                   color: Colors.white,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               onPressed: fetchLeaderboard,
               style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor.withOpacity(0.8),
+                backgroundColor: primaryColor.withOpacity(0.85),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
+                  horizontal: 30,
+                  vertical: 14,
                 ),
+                elevation: 2,
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyLeaderboardWidget() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(30.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.leaderboard_rounded, // Icon yang lebih sesuai
+              color: Colors.grey.shade500,
+              size: 80,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              "Papan Peringkat Kosong",
+              style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: darkTextColor,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              "Saat ini belum ada data peringkat untuk ditampilkan.",
+              style: GoogleFonts.poppins(
+                fontSize: 15,
+                color: secondaryTextColor,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -177,6 +215,15 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Atur warna status bar agar konsisten dengan AppBar
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: primaryColor, // Samakan dengan AppBar
+        statusBarIconBrightness:
+            Brightness.light, // Ikon terang jika background gelap
+      ),
+    );
+
     return Scaffold(
       backgroundColor: scaffoldBgColor,
       appBar: AppBar(
@@ -189,113 +236,86 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           ),
         ),
         centerTitle: true,
-        elevation: 1.0,
+        elevation: 2.0, // Sedikit shadow
+        // Tombol refresh di AppBar
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+            onPressed:
+                isLoading ? null : fetchLeaderboard, // Nonaktifkan saat loading
+            tooltip: "Refresh Peringkat",
+          ),
+        ],
       ),
       body:
           isLoading
               ? Center(child: CircularProgressIndicator(color: primaryColor))
               : error != null
               ? _buildErrorStateWidget(error!)
-              : leaderboardData.length < 3 && leaderboardData.isNotEmpty
+              : leaderboardData
+                  .isEmpty // Cek jika kosong dulu
+              ? _buildEmptyLeaderboardWidget()
+              : leaderboardData.length <
+                  3 // Baru cek jika kurang dari 3
               ? _buildInsufficientDataWidget()
-              : leaderboardData.isEmpty
-              ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(30.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.leaderboard_outlined,
-                        color: Colors.grey.shade400,
-                        size: 70,
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        "Leaderboard Kosong",
-                        style: GoogleFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: darkTextColor,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Belum ada data untuk ditampilkan.",
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          color: secondaryTextColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
               : Column(
+                // Layout utama jika data cukup
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 20.0, bottom: 10.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.timer_outlined,
-                          color: secondaryTextColor,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          "",
-                          style: GoogleFonts.poppins(
-                            color: secondaryTextColor,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                  // Bagian Podium (Top 3)
+                  Container(
+                    padding: const EdgeInsets.only(
+                      top: 24.0,
+                      bottom: 20.0,
+                      left: 16.0,
+                      right: 16.0,
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16.0,
-                      horizontal: 8.0, // Padding horizontal untuk Row Top 3
+                    decoration: BoxDecoration(
+                      color: primaryColor.withOpacity(
+                        0.05,
+                      ), // Warna latar podium
+                      // borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20))
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         if (leaderboardData.length > 1)
-                          // PERBAIKAN: Bungkus _buildTopUser dengan Flexible atau Expanded jika diperlukan
-                          // Namun, karena _buildTopUser memiliki width tetap, pastikan total width + spacing cukup.
-                          // Jika tidak, pertimbangkan mengurangi width atau padding di _buildTopUser
-                          _buildTopUser(leaderboardData[1], 2, silverColor),
+                          _buildTopUser(
+                            leaderboardData[1],
+                            2,
+                            silverColor,
+                            "nd",
+                          ),
                         if (leaderboardData.isNotEmpty)
-                          _buildTopUser(leaderboardData[0], 1, goldColor),
+                          _buildTopUser(leaderboardData[0], 1, goldColor, "st"),
                         if (leaderboardData.length > 2)
-                          _buildTopUser(leaderboardData[2], 3, bronzeColor),
+                          _buildTopUser(
+                            leaderboardData[2],
+                            3,
+                            bronzeColor,
+                            "rd",
+                          ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  // Daftar Peringkat Lainnya
                   Expanded(
                     child: Container(
-                      padding: const EdgeInsets.only(
-                        top: 24,
-                        left: 16, // Padding kiri untuk list
-                        right: 16, // Padding kanan untuk list
-                      ),
+                      margin: const EdgeInsets.only(
+                        top: 0,
+                      ), // Beri jarak dari podium
                       decoration: BoxDecoration(
                         color: listBgColor,
                         borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(30),
-                          topRight: Radius.circular(30),
+                          topLeft: Radius.circular(24),
+                          topRight: Radius.circular(24),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.grey.withOpacity(0.15),
-                            spreadRadius: 2,
-                            blurRadius: 8,
-                            offset: const Offset(0, -3),
+                            color: Colors.grey.withOpacity(0.1),
+                            spreadRadius: 1,
+                            blurRadius: 10,
+                            offset: const Offset(0, -2),
                           ),
                         ],
                       ),
@@ -304,71 +324,72 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                             leaderboardData.length > 3
                                 ? leaderboardData.length - 3
                                 : 0,
-                        padding: EdgeInsets.zero,
+                        padding: const EdgeInsets.only(
+                          top: 20,
+                          left: 16,
+                          right: 16,
+                          bottom: 16,
+                        ), // Padding untuk list
                         separatorBuilder:
                             (_, __) => Divider(
                               color: Colors.grey.shade200,
                               height: 1,
                               thickness: 1,
+                              indent: 16, // Indent agar tidak full width
+                              endIndent: 16,
                             ),
                         itemBuilder: (context, index) {
                           final user = leaderboardData[index + 3];
                           final rank = index + 4;
                           return ListTile(
                             contentPadding: const EdgeInsets.symmetric(
-                              vertical: 8.0,
-                              horizontal:
-                                  0, // Kurangi horizontal padding ListTile jika ada padding di Container luar
+                              vertical: 10.0, // Padding vertikal lebih besar
+                              horizontal: 8.0,
                             ),
                             leading: Row(
-                              // Menggunakan Row untuk leading agar lebih fleksibel
-                              mainAxisSize:
-                                  MainAxisSize
-                                      .min, // Penting untuk Row dalam leading
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Container(
-                                  width: 32, // Lebar tetap untuk rank agar rapi
+                                  width: 36, // Lebar rank konsisten
                                   alignment: Alignment.center,
                                   child: Text(
-                                    "#$rank",
+                                    "$rank", // Hanya angka rank
                                     style: GoogleFonts.poppins(
-                                      fontSize: 14, // Sedikit dikecilkan
+                                      fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                       color: secondaryTextColor,
                                     ),
-                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                const SizedBox(
-                                  width: 8,
-                                ), // Jarak antara rank dan avatar
+                                const SizedBox(width: 12),
                                 CircleAvatar(
-                                  radius: 20, // Ukuran avatar disesuaikan
-                                  backgroundColor: Colors.grey.shade300,
-                                  backgroundImage: NetworkImage(
-                                    _getAvatarUrl(user['username']),
+                                  radius: 22, // Ukuran avatar konsisten
+                                  backgroundColor: Colors.grey.shade200,
+                                  backgroundImage: CachedNetworkImageProvider(
+                                    // Gunakan CachedNetworkImageProvider
+                                    _getAvatarUrl(user['username'] ?? 'User'),
                                   ),
-                                  onBackgroundImageError: (e, s) {},
+                                  onBackgroundImageError: (e, s) {
+                                    // Handle error jika perlu, misal tampilkan inisial
+                                  },
                                 ),
                               ],
                             ),
                             title: Text(
-                              user["username"] ?? "User",
+                              user["username"] ?? "User Tanpa Nama",
                               style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.w600,
-                                fontSize: 15, // Sedikit dikecilkan
+                                fontSize: 16,
                                 color: darkTextColor,
                               ),
-                              maxLines: 1, // Pastikan tidak lebih dari 1 baris
-                              overflow:
-                                  TextOverflow
-                                      .ellipsis, // Ellipsis jika terlalu panjang
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             trailing: Text(
                               "${user["points"] ?? 0} Poin",
                               style: GoogleFonts.poppins(
-                                fontSize: 13, // Sedikit dikecilkan
-                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600, // Lebih tebal
                                 color: primaryColor,
                               ),
                               maxLines: 1,
@@ -384,31 +405,60 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
-  Widget _buildTopUser(Map<String, dynamic> user, int rank, Color rankColor) {
-    final double baseHeight = 100;
-    final double heightFactor = rank == 1 ? 1.4 : (rank == 2 ? 1.15 : 1.0);
-
-    // Define avatar radius based on rank directly for more control
-    double currentAvatarRadius;
-    if (rank == 1) {
-      currentAvatarRadius = 25 * 1.3; // approx 32.5
-    } else if (rank == 2) {
-      currentAvatarRadius = 25 * 1.1; // approx 27.5
-    } else {
-      // Rank 3 (and any other, though layout is for top 3)
-      currentAvatarRadius = 22; // Radius 22, Diameter 44 (was 25, Diameter 50)
-    }
-
-    // Define SizedBox heights based on rank
+  Widget _buildTopUser(
+    Map<String, dynamic> user,
+    int rank,
+    Color rankColor,
+    String rankSuffix,
+  ) {
+    final double baseHeight = 100; // Ketinggian dasar untuk rank 3
+    final double heightFactor;
+    // Variabel untuk ukuran dan spasi yang disesuaikan
+    double avatarRadius;
+    double usernameFontSize;
+    double pointsFontSize;
+    double rankBadgeFontSize;
     double spaceAfterAvatar;
     double spaceAfterUsername;
+    EdgeInsetsGeometry containerPadding;
 
-    if (rank == 3) {
-      spaceAfterAvatar = 4.0; // Reduced from 5
-      spaceAfterUsername = 2.0; // Reduced from 3
+    if (rank == 1) {
+      heightFactor = 1.45;
+      avatarRadius = 32; // Sebelumnya 38
+      usernameFontSize = 12; // Sebelumnya 13
+      pointsFontSize = 10; // Sebelumnya 11
+      rankBadgeFontSize = 16;
+      spaceAfterAvatar = 4; // Sebelumnya 6
+      spaceAfterUsername = 2; // Sebelumnya 3
+      containerPadding = const EdgeInsets.symmetric(
+        vertical: 8,
+        horizontal: 6,
+      ); // Sebelumnya 10
+    } else if (rank == 2) {
+      heightFactor = 1.20;
+      avatarRadius = 28; // Sebelumnya 32
+      usernameFontSize = 11; // Sebelumnya 12
+      pointsFontSize = 9; // Sebelumnya 10
+      rankBadgeFontSize = 15;
+      spaceAfterAvatar = 4; // Sebelumnya 6
+      spaceAfterUsername = 2; // Sebelumnya 3
+      containerPadding = const EdgeInsets.symmetric(
+        vertical: 8,
+        horizontal: 6,
+      ); // Sebelumnya 10
     } else {
-      spaceAfterAvatar = 5.0;
-      spaceAfterUsername = 3.0;
+      // Rank 3
+      heightFactor = 1.0;
+      avatarRadius = 24; // Sebelumnya 28
+      usernameFontSize = 10; // Sebelumnya 11
+      pointsFontSize = 8; // Sebelumnya 9
+      rankBadgeFontSize = 14;
+      spaceAfterAvatar = 4; // Sebelumnya 6
+      spaceAfterUsername = 2; // Sebelumnya 3
+      containerPadding = const EdgeInsets.symmetric(
+        vertical: 8,
+        horizontal: 6,
+      ); // Sebelumnya 10
     }
 
     final String username = user["username"] ?? "User";
@@ -417,25 +467,30 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (rank == 1)
-          Icon(Icons.emoji_events_rounded, color: rankColor, size: 30),
-        if (rank == 1) const SizedBox(height: 3),
+        if (rank == 1) // Mahkota hanya untuk rank 1
+          Icon(
+            Icons.emoji_events_rounded,
+            color: rankColor.withOpacity(0.9),
+            size: 32,
+          ),
+        if (rank == 1) const SizedBox(height: 4),
         Container(
           height: baseHeight * heightFactor,
-          width: 90,
-          padding: const EdgeInsets.symmetric(
-            vertical: 8, // Total 16px vertical padding
-            horizontal: 6,
-          ),
+          width: 95, // Lebar disesuaikan
+          padding: containerPadding, // Gunakan padding yang disesuaikan
           decoration: BoxDecoration(
-            color: primaryColor.withOpacity(0.9),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: rankColor, width: 2.0),
+            color: listBgColor, // Warna dasar putih
+            borderRadius: BorderRadius.circular(16), // Radius lebih besar
+            border: Border.all(
+              color: rankColor,
+              width: 2.5,
+            ), // Border lebih tebal
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.12),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
+                color: rankColor.withOpacity(0.25), // Shadow dengan warna rank
+                blurRadius: 10,
+                spreadRadius: 1,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -443,29 +498,38 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircleAvatar(
-                backgroundImage: NetworkImage(_getAvatarUrl(username)),
-                radius: currentAvatarRadius, // Use adjusted radius
-                backgroundColor: Colors.white.withOpacity(0.5),
+                backgroundImage: CachedNetworkImageProvider(
+                  _getAvatarUrl(username),
+                ),
+                radius: avatarRadius, // Gunakan radius yang disesuaikan
+                backgroundColor: Colors.grey.shade200,
                 onBackgroundImageError: (e, s) {},
               ),
-              SizedBox(height: spaceAfterAvatar), // Use adjusted spacing
+              SizedBox(
+                height: spaceAfterAvatar,
+              ), // Gunakan spasi yang disesuaikan
               Text(
                 username,
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.poppins(
-                  fontSize: 11,
+                  fontSize:
+                      usernameFontSize, // Gunakan font size yang disesuaikan
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: darkTextColor,
                 ),
               ),
-              SizedBox(height: spaceAfterUsername), // Use adjusted spacing
+              SizedBox(
+                height: spaceAfterUsername,
+              ), // Gunakan spasi yang disesuaikan
               Text(
                 "$points Poin",
                 style: GoogleFonts.poppins(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 10,
+                  color: secondaryTextColor,
+                  fontSize:
+                      pointsFontSize, // Gunakan font size yang disesuaikan
+                  fontWeight: FontWeight.w500,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -473,19 +537,29 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
             color: rankColor,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: rankColor.withOpacity(0.3),
+                blurRadius: 5,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Text(
-            "#$rank",
+            "$rank$rankSuffix", // Menggunakan rankSuffix
             style: GoogleFonts.poppins(
-              fontSize: 14,
+              fontSize: rankBadgeFontSize, // Gunakan font size yang disesuaikan
               fontWeight: FontWeight.bold,
-              color: rank == 1 ? Colors.black87 : Colors.white,
+              color:
+                  rank == 1
+                      ? Colors.black.withOpacity(0.75)
+                      : Colors.white, // Warna teks rank badge
             ),
           ),
         ),
@@ -494,8 +568,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 
   String _getAvatarUrl(String name) {
-    // ignore: unused_local_variable
-    final hash = name.hashCode;
-    return "https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=random&color=fff&size=128&font-size=0.33"; // font-size ditambahkan agar inisial lebih kecil jika nama panjang
+    return "https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=random&color=fff&size=128&font-size=0.35&bold=true";
   }
 }

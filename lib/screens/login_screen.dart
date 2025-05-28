@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart'; // Tambahkan import
 import 'package:tubes_mobile/screens/register_screen.dart';
 import 'package:tubes_mobile/screens/requestreset_screen.dart';
 import 'package:tubes_mobile/services/api_service.dart';
@@ -17,22 +18,25 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController identifierController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool isLoading = false;
+  bool _passwordVisible = false; // Untuk toggle visibilitas password
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordVisible = false;
+  }
 
   Future<void> loginUser() async {
     final identifier = identifierController.text.trim();
     final password = passwordController.text;
 
     if (identifier.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Email atau Username belum diisi")),
-      );
+      _showSnackBar("Email atau Username belum diisi");
       return;
     }
 
     if (password.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Password belum diisi")));
+      _showSnackBar("Password belum diisi");
       return;
     }
 
@@ -48,126 +52,267 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
 
-      // Tampilkan dialog "Login berhasil"
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder:
-            (_) => AlertDialog(
-              title: Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.green),
-                  SizedBox(width: 10),
-                  Text("Sukses"),
-                ],
-              ),
-              content: Text("Login berhasil!"),
-            ),
-      );
+      _showSuccessDialog("Login berhasil!");
 
-      // Delay dan navigasi ke HomeScreen setelah 2 detik
-      await Future.delayed(Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 2));
 
       if (!mounted) return;
       Navigator.pop(context); // Tutup dialog
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => HomeScreen()),
+        MaterialPageRoute(
+          builder: (_) => const HomeScreen(),
+        ), // Tambahkan const
       );
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response["message"])));
+      _showSnackBar(response["message"] ?? "Terjadi kesalahan saat login.");
     }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.poppins()),
+        backgroundColor: Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            icon: Icon(
+              Icons.check_circle_outline_rounded,
+              color: Colors.green.shade600,
+              size: 48,
+            ),
+            title: Text(
+              "Sukses",
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            content: Text(
+              message,
+              style: GoogleFonts.poppins(fontSize: 15),
+              textAlign: TextAlign.center,
+            ),
+            // Tidak ada actions karena dialog akan hilang otomatis
+          ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Definisikan InputDecoration yang konsisten
+    InputDecoration themedInputDecoration({
+      required String labelText,
+      required IconData prefixIcon,
+      Widget? suffixIcon,
+    }) {
+      return InputDecoration(
+        labelText: labelText,
+        labelStyle: GoogleFonts.poppins(color: Colors.grey.shade700),
+        hintStyle: GoogleFonts.poppins(color: Colors.grey.shade500),
+        prefixIcon: Icon(prefixIcon, color: Colors.green.shade600),
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.green.shade600, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 16,
+          horizontal: 16,
+        ),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: Colors.green[50],
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset('assets/TrashTech.png', width: 150, height: 150),
-              SizedBox(height: 20),
-              Text(
-                "TrashTech Login",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green[700],
-                ),
-              ),
-              SizedBox(height: 20),
-              TextField(
-                controller: identifierController,
-                decoration: InputDecoration(
-                  labelText: "Email atau Username",
-                  prefixIcon: Icon(Icons.person, color: Colors.green),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+      backgroundColor:
+          Colors.green.shade50, // Latar belakang sedikit lebih hijau
+      body: SafeArea(
+        // Gunakan SafeArea
+        child: Center(
+          child: SingleChildScrollView(
+            // Agar bisa di-scroll jika konten melebihi layar
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 32.0,
+            ), // Padding lebih besar
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment:
+                  CrossAxisAlignment.stretch, // Agar tombol bisa full-width
+              children: [
+                Image.asset(
+                  'assets/TrashTech.png',
+                  width: 130,
+                  height: 130,
+                ), // Ukuran sedikit disesuaikan
+                const SizedBox(height: 24),
+                Text(
+                  "Selamat Datang!", // Teks sapaan lebih ramah
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 26, // Ukuran font disesuaikan
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green.shade800,
                   ),
                 ),
-              ),
-              SizedBox(height: 10),
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: "Password",
-                  prefixIcon: Icon(Icons.lock, color: Colors.green),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                Text(
+                  "Login untuk melanjutkan ke TrashTech",
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    color: Colors.grey.shade700,
                   ),
                 ),
-              ),
-              SizedBox(height: 20),
-              isLoading
-                  ? CircularProgressIndicator()
-                  : ElevatedButton(
-                    onPressed: loginUser,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: EdgeInsets.symmetric(
-                        vertical: 14,
-                        horizontal: 50,
+                const SizedBox(height: 32),
+                TextField(
+                  controller: identifierController,
+                  style: GoogleFonts.poppins(),
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: themedInputDecoration(
+                    labelText: "Email atau Username",
+                    prefixIcon: Icons.person_outline_rounded,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: passwordController,
+                  style: GoogleFonts.poppins(),
+                  obscureText: !_passwordVisible,
+                  decoration: themedInputDecoration(
+                    labelText: "Password",
+                    prefixIcon: Icons.lock_outline_rounded,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _passwordVisible
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: Colors.grey.shade600,
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      onPressed: () {
+                        setState(() {
+                          _passwordVisible = !_passwordVisible;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RequestResetScreen(),
+                          ), // Tambahkan const
+                        ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
                       ),
                     ),
                     child: Text(
-                      "Login",
-                      style: TextStyle(fontSize: 16, color: Colors.white),
+                      "Lupa password?",
+                      style: GoogleFonts.poppins(
+                        color: Colors.green.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-              TextButton(
-                onPressed:
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => RequestResetScreen()),
-                    ),
-                child: Text(
-                  "Lupa password?",
-                  style: TextStyle(color: Colors.red[700]),
                 ),
-              ),
-
-              TextButton(
-                onPressed:
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => RegisterScreen()),
+                const SizedBox(height: 24),
+                isLoading
+                    ? Center(
+                      child: CircularProgressIndicator(
+                        color: Colors.green.shade600,
+                      ),
+                    )
+                    : ElevatedButton.icon(
+                      // Tombol dengan ikon
+                      icon: const Icon(
+                        Icons.login_rounded,
+                        color: Colors.white,
+                      ),
+                      onPressed: loginUser,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green.shade600,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 16,
+                        ), // Padding vertikal
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 3,
+                      ),
+                      label: Text(
+                        "Login",
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600, // Lebih tebal
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
-                child: Text(
-                  "Belum punya akun? Register",
-                  style: TextStyle(color: Colors.green[700]),
+                const SizedBox(height: 20),
+                Row(
+                  // Untuk link register
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Belum punya akun?",
+                      style: GoogleFonts.poppins(color: Colors.grey.shade700),
+                    ),
+                    TextButton(
+                      onPressed:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RegisterScreen(),
+                            ), // Tambahkan const
+                          ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 4,
+                        ),
+                      ),
+                      child: Text(
+                        "Register di sini",
+                        style: GoogleFonts.poppins(
+                          color: Colors.green.shade700, // Warna konsisten
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

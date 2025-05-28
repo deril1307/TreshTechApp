@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
 
 class ApiService {
-  static const String baseUrl = "http://192.168.105.79:5000";
+  static const String baseUrl = "http://10.0.2.2:5000";
 
   static Future<List<dynamic>> getKategoriSampah() async {
     try {

@@ -86,10 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
 
-    // PERBAIKAN: Menggunakan Connectivity().checkConnectivity() secara langsung
     var connectivityResult = await (Connectivity().checkConnectivity());
-    // Versi terbaru connectivity_plus mengembalikan List<ConnectivityResult>
-    // Jadi kita cek jika tidak mengandung .none
     if (!connectivityResult.contains(ConnectivityResult.none)) {
       try {
         var userData = await ApiService.getUserData(savedUserId);
@@ -136,10 +133,6 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) _refreshData();
     });
   }
-
-  // ... Sisa dari widget build dan helper method lainnya (_buildHeaderSection, _buildBalanceCard, dll.)
-  // TETAP SAMA seperti versi UI yang telah disempurnakan sebelumnya.
-  // Anda hanya perlu memastikan metode _loadUser di atas yang digunakan.
 
   @override
   Widget build(BuildContext context) {
