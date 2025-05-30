@@ -1,11 +1,14 @@
+// ignore_for_file: await_only_futures, unused_import, duplicate_import
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart'; // Tambahkan import
+import 'package:google_fonts/google_fonts.dart';
 import 'package:tubes_mobile/services/api_service.dart';
 import 'package:tubes_mobile/screens/login_screen.dart';
+import '../main.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key}); // Tambahkan const dan Key
+  const RegisterScreen({super.key});
 
   @override
   // ignore: library_private_types_in_public_api
@@ -19,7 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController fullNameController = TextEditingController();
 
   bool isLoading = false;
-  bool _passwordVisible = false; // Untuk toggle visibilitas password
+  bool _passwordVisible = false;
 
   @override
   void initState() {
@@ -27,7 +30,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _passwordVisible = false;
   }
 
-  // Fungsi validasi email
+  @override
+  void dispose() {
+    usernameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    fullNameController.dispose();
+    super.dispose();
+  }
+
   bool isValidEmail(String email) {
     final emailRegex = RegExp(
       r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
@@ -40,37 +51,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final username = usernameController.text.trim();
     final fullName = fullNameController.text.trim();
     final password = passwordController.text;
+    // ignore: unused_local_variable
+    final theme = Theme.of(context); // Ambil theme untuk snackbar
 
-    // Validasi input dasar
     if (fullName.isEmpty) {
-      _showSnackBar("Nama Lengkap belum diisi", isError: true);
+      _showSnackBar(
+        "Nama Lengkap belum diisi",
+        isError: true,
+        context: context,
+      );
       return;
     }
     if (username.isEmpty) {
-      _showSnackBar("Username belum diisi", isError: true);
+      _showSnackBar("Username belum diisi", isError: true, context: context);
       return;
     }
     if (email.isEmpty) {
-      _showSnackBar("Email belum diisi", isError: true);
+      _showSnackBar("Email belum diisi", isError: true, context: context);
       return;
     }
     if (!isValidEmail(email)) {
       _showSnackBar(
         "Format email tidak valid. Contoh: user@example.com",
         isError: true,
+        context: context,
       );
       return;
     }
     if (password.isEmpty) {
-      _showSnackBar("Password belum diisi", isError: true);
+      _showSnackBar("Password belum diisi", isError: true, context: context);
       return;
     }
     if (password.length < 6) {
-      // Contoh validasi panjang password
-      _showSnackBar("Password minimal harus 6 karakter", isError: true);
+      _showSnackBar(
+        "Password minimal harus 6 karakter",
+        isError: true,
+        context: context,
+      );
       return;
     }
 
+    if (!mounted) return;
     setState(() => isLoading = true);
 
     final response = await ApiService.register(
@@ -80,35 +101,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
       fullName,
     );
 
-    if (!mounted) return; // Periksa mounted state sebelum setState
+    if (!mounted) return;
     setState(() => isLoading = false);
 
     if (response["message"] == "Registrasi berhasil!") {
-      _showSnackBar("Registrasi berhasil! Silakan login.", isError: false);
-      await Future.delayed(
-        const Duration(milliseconds: 1500),
-      ); // Beri waktu SnackBar terlihat
+      _showSnackBar(
+        "Registrasi berhasil! Silakan login.",
+        isError: false,
+        context: context,
+      );
+      await Future.delayed(const Duration(milliseconds: 1500));
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
-        // Ganti agar tidak bisa kembali ke register
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (Route<dynamic> route) => false, // Hapus semua route sebelumnya
+        (Route<dynamic> route) => false,
       );
     } else {
       _showSnackBar(
         response["message"] ?? "Terjadi kesalahan saat registrasi.",
         isError: true,
+        context: context,
       );
     }
   }
 
-  void _showSnackBar(String message, {bool isError = false}) {
+  void _showSnackBar(
+    String message, {
+    required bool isError,
+    required BuildContext context,
+  }) {
     if (!mounted) return;
+    final theme = Theme.of(context); // Ambil theme dari context yang di-pass
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: GoogleFonts.poppins(color: Colors.white)),
-        backgroundColor: isError ? Colors.red.shade600 : Colors.green.shade600,
+        content: Text(
+          message,
+          style: GoogleFonts.poppins(
+            color: isError ? theme.colorScheme.onError : Colors.white,
+          ),
+        ),
+        backgroundColor:
+            isError
+                ? theme.colorScheme.error
+                : theme.primaryColor, // Warna snackbar dari tema
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.all(10),
@@ -118,7 +154,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Definisikan InputDecoration yang konsisten
+    final theme = Theme.of(context);
+    final customColors = theme.extension<CustomThemeColors>()!;
+
     InputDecoration themedInputDecoration({
       required String labelText,
       required IconData prefixIcon,
@@ -126,63 +164,81 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }) {
       return InputDecoration(
         labelText: labelText,
-        labelStyle: GoogleFonts.poppins(color: Colors.grey.shade700),
-        hintText: 'Masukkan $labelText', // Tambahkan hint text
-        hintStyle: GoogleFonts.poppins(color: Colors.grey.shade500),
+        labelStyle: GoogleFonts.poppins(
+          color: customColors.secondaryTextColor,
+          fontSize: 15,
+        ),
+        hintText: 'Masukkan $labelText',
+        hintStyle: GoogleFonts.poppins(
+          color: theme.hintColor.withOpacity(0.7),
+          fontSize: 15,
+        ),
         prefixIcon: Icon(
           prefixIcon,
-          color: Colors.green.shade600,
+          color: theme.primaryColor.withOpacity(0.8),
           size: 22,
-        ), // Ukuran ikon disesuaikan
+        ),
         suffixIcon: suffixIcon,
         filled: true,
-        fillColor: Colors.white, // Latar belakang field putih
+        fillColor: theme.cardColor.withOpacity(
+          theme.brightness == Brightness.light ? 0.8 : 0.2,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: theme.dividerColor, width: 1.0),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(
+            color: theme.dividerColor.withOpacity(0.8),
+            width: 1.2,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.green.shade600, width: 2),
+          borderSide: BorderSide(color: theme.primaryColor, width: 1.8),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: theme.colorScheme.error, width: 1.2),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: theme.colorScheme.error, width: 1.8),
         ),
         contentPadding: const EdgeInsets.symmetric(
           vertical: 16,
-          horizontal: 16,
+          horizontal: 20,
         ),
       );
     }
 
     // Atur warna status bar agar konsisten dengan AppBar
+    // Ini sebaiknya dilakukan sekali di MaterialApp atau saat tema berubah jika memungkinkan
+    // Namun, jika hanya untuk halaman ini, bisa diletakkan di sini.
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
-        statusBarColor: Colors.green.shade600, // Samakan dengan AppBar
+        statusBarColor:
+            theme.appBarTheme.backgroundColor ??
+            theme.primaryColor, // Warna dari AppBarTheme
         statusBarIconBrightness:
-            Brightness.light, // Ikon terang jika background gelap
+            theme.brightness == Brightness.dark
+                ? Brightness.light
+                : Brightness.dark,
       ),
     );
 
     return Scaffold(
-      backgroundColor: Colors.green.shade50, // Latar belakang utama
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor:
-            Colors.green.shade600, // Warna AppBar yang lebih menonjol
-        elevation: 2, // Sedikit shadow
+        // backgroundColor, elevation, titleTextStyle, iconTheme diambil dari AppBarTheme di main.dart
         title: Text(
-          "Buat Akun Baru", // Judul lebih deskriptif
+          "Buat Akun Baru",
           style: GoogleFonts.poppins(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+          ), // Style judul dari AppBarTheme
         ),
-        iconTheme: const IconThemeData(
-          color: Colors.white,
-        ), // Ikon kembali putih
         leading: IconButton(
-          // Tombol kembali kustom jika diperlukan
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -198,36 +254,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Gambar Header
                 Image.asset(
-                  "assets/TrashTech.png",
+                  "assets/TrashTech.png", // Pastikan path aset benar
                   height: 100,
                   width: 100,
-                ), // Ukuran disesuaikan
+                ),
                 const SizedBox(height: 16),
                 Text(
                   "Daftarkan Diri Anda",
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
-                    fontSize: 24,
+                    fontSize: 26, // Ukuran disesuaikan
                     fontWeight: FontWeight.bold,
-                    color: Colors.green.shade800,
+                    color: customColors.titleTextColor,
                   ),
                 ),
+                const SizedBox(height: 8),
                 Text(
                   "Isi data di bawah untuk membuat akun baru.",
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
+                    fontSize: 15, // Ukuran disesuaikan
+                    color: customColors.secondaryTextColor,
                   ),
                 ),
                 const SizedBox(height: 28),
-
-                // Form Registrasi
                 TextField(
                   controller: fullNameController,
-                  style: GoogleFonts.poppins(),
+                  style: GoogleFonts.poppins(
+                    color: customColors.bodyTextColor,
+                    fontSize: 15.5,
+                  ),
                   decoration: themedInputDecoration(
                     labelText: "Nama Lengkap",
                     prefixIcon: Icons.person_outline_rounded,
@@ -235,20 +292,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   textCapitalization: TextCapitalization.words,
                 ),
                 const SizedBox(height: 16),
-
                 TextField(
                   controller: usernameController,
-                  style: GoogleFonts.poppins(),
+                  style: GoogleFonts.poppins(
+                    color: customColors.bodyTextColor,
+                    fontSize: 15.5,
+                  ),
                   decoration: themedInputDecoration(
                     labelText: "Username",
                     prefixIcon: Icons.account_circle_outlined,
                   ),
                 ),
                 const SizedBox(height: 16),
-
                 TextField(
                   controller: emailController,
-                  style: GoogleFonts.poppins(),
+                  style: GoogleFonts.poppins(
+                    color: customColors.bodyTextColor,
+                    fontSize: 15.5,
+                  ),
                   decoration: themedInputDecoration(
                     labelText: "Email",
                     prefixIcon: Icons.email_outlined,
@@ -256,10 +317,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 16),
-
                 TextField(
                   controller: passwordController,
-                  style: GoogleFonts.poppins(),
+                  style: GoogleFonts.poppins(
+                    color: customColors.bodyTextColor,
+                    fontSize: 15.5,
+                  ),
                   obscureText: !_passwordVisible,
                   decoration: themedInputDecoration(
                     labelText: "Password",
@@ -269,7 +332,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         _passwordVisible
                             ? Icons.visibility_off_outlined
                             : Icons.visibility_outlined,
-                        color: Colors.grey.shade600,
+                        color: customColors.secondaryTextColor?.withOpacity(
+                          0.7,
+                        ),
                       ),
                       onPressed: () {
                         setState(() {
@@ -279,36 +344,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 28),
-
-                // Tombol Register
+                const SizedBox(height: 32), // Spasi lebih besar sebelum tombol
                 isLoading
                     ? Center(
                       child: CircularProgressIndicator(
-                        color: Colors.green.shade600,
+                        color: theme.primaryColor,
                       ),
                     )
                     : ElevatedButton.icon(
                       icon: const Icon(
                         Icons.person_add_alt_1_rounded,
-                        color: Colors.white,
+                        size: 22,
                       ),
                       label: Text(
                         "Register",
                         style: GoogleFonts.poppins(
-                          fontSize: 16,
+                          fontSize: 17,
                           fontWeight: FontWeight.w600,
-                          color: Colors.white,
                         ),
                       ),
                       onPressed: registerUser,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade600,
+                        backgroundColor: theme.primaryColor,
+                        foregroundColor: theme.colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                         elevation: 3,
+                        minimumSize: const Size(double.infinity, 52),
                       ),
                     ),
                 const SizedBox(height: 20),
@@ -317,12 +381,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   children: [
                     Text(
                       "Sudah punya akun?",
-                      style: GoogleFonts.poppins(color: Colors.grey.shade700),
+                      style: GoogleFonts.poppins(
+                        color: customColors.secondaryTextColor,
+                        fontSize: 15,
+                      ),
                     ),
                     TextButton(
                       onPressed: () {
                         Navigator.pushReplacement(
-                          // Ganti agar tidak bisa kembali ke register
                           context,
                           MaterialPageRoute(
                             builder: (_) => const LoginScreen(),
@@ -338,14 +404,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: Text(
                         "Login di sini",
                         style: GoogleFonts.poppins(
-                          color: Colors.green.shade700,
+                          color: theme.primaryColor,
                           fontWeight: FontWeight.bold,
+                          fontSize: 15,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20), // Tambahan padding di bawah
+                const SizedBox(height: 20),
               ],
             ),
           ),

@@ -1,12 +1,18 @@
+// ignore_for_file: library_private_types_in_public_api, await_only_futures, unused_import
+
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:google_fonts/google_fonts.dart'; // Import GoogleFonts
+import 'package:google_fonts/google_fonts.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart'; // Pastikan ini adalah utilitas Shared Preferences Anda
 import 'package:tubes_mobile/services/api_service.dart';
 import 'kategori_detail_screen.dart';
+
+// Import MyApp dan CustomThemeColors dari main.dart
+// Sesuaikan path '../main.dart' jika struktur folder Anda berbeda
+import '../main.dart'; // Asumsi main.dart ada di direktori parent
 
 class KategoriSampahScreen extends StatefulWidget {
   const KategoriSampahScreen({super.key});
@@ -19,22 +25,36 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
   List<dynamic> categories = [];
   bool isLoading = true;
   Timer? _refreshTimer;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
-  // Definisikan warna tema untuk konsistensi
-  final Color primaryColor = const Color.fromARGB(255, 7, 168, 13);
-  final Color lightGreenBackground = Colors.green.shade50;
-  final Color cardShadowColor = Colors.black.withOpacity(0.08);
+  // HAPUS DEFINISI WARNA HARDCODE DI SINI
+  // final Color primaryColor = const Color.fromARGB(255, 7, 168, 13);
+  // final Color lightGreenBackground = Colors.green.shade50;
+  // final Color cardShadowColor = Colors.black.withOpacity(0.08);
 
   @override
   void initState() {
     super.initState();
     _loadCachedDataThenFetch();
     _startAutoRefresh();
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      List<ConnectivityResult> result,
+    ) {
+      // Jika koneksi berubah, coba fetch data lagi jika belum loading
+      if (mounted &&
+          !isLoading &&
+          (result.contains(ConnectivityResult.mobile) ||
+              result.contains(ConnectivityResult.wifi) ||
+              result.contains(ConnectivityResult.ethernet))) {
+        _checkInternetAndFetchData();
+      }
+    });
   }
 
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _connectivitySubscription?.cancel();
     super.dispose();
   }
 
@@ -45,16 +65,37 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
   }
 
   Future<void> _loadCachedDataThenFetch() async {
-    // Menggunakan SharedPrefUtils sesuai kode asli Anda
+    if (!mounted) return;
+    // Set isLoading true di awal jika categories masih kosong
+    if (categories.isEmpty) {
+      setState(() {
+        isLoading = true;
+      });
+    }
+
     String? cachedData = await SharedPrefUtils.getKategoriSampah();
     if (cachedData != null) {
-      if (mounted) {
-        setState(() {
-          categories = jsonDecode(cachedData);
-          isLoading =
-              categories
-                  .isEmpty; // Jika cache ada tapi kosong, tetap loading sampai fetch
-        });
+      try {
+        final decodedData = jsonDecode(cachedData);
+        if (decodedData is List) {
+          // Pastikan data yang di-decode adalah List
+          if (mounted) {
+            setState(() {
+              categories = decodedData;
+              // isLoading akan di-set false setelah fetch atau jika fetch gagal dan cache ada
+            });
+          }
+        } else {
+          print("Cached data for kategori sampah is not a List.");
+        }
+      } catch (e) {
+        print("Error decoding cached kategori sampah: $e");
+        // Jika ada error decoding, anggap cache tidak valid
+        if (mounted) {
+          setState(() {
+            categories = [];
+          });
+        }
       }
     }
     // Selalu coba fetch data terbaru setelah memuat cache (atau jika cache tidak ada)
@@ -62,11 +103,11 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
   }
 
   Future<void> _checkInternetAndFetchData() async {
+    if (!mounted) return;
     var connectivityResult = await Connectivity().checkConnectivity();
-    // Periksa apakah ada konektivitas selain none
-    if (connectivityResult.contains(ConnectivityResult.mobile) ||
-        connectivityResult.contains(ConnectivityResult.wifi) ||
-        connectivityResult.contains(ConnectivityResult.ethernet)) {
+    bool isOnline = !connectivityResult.contains(ConnectivityResult.none);
+
+    if (isOnline) {
       await fetchCategories();
     } else {
       // Jika tidak ada internet dan tidak ada cache (atau cache kosong)
@@ -74,15 +115,19 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
         setState(() {
           isLoading = false; // Berhenti loading, tampilkan pesan empty state
         });
+      } else if (mounted) {
+        // Jika offline tapi ada data dari cache, pastikan isLoading false
+        setState(() {
+          isLoading = false;
+        });
       }
     }
   }
 
   Future<void> fetchCategories() async {
-    if (!mounted) return; // Hindari setState jika widget sudah di-dispose
-    // Jika belum loading, set isLoading true sebelum fetch
-    if (!isLoading && categories.isEmpty) {
-      // Hanya set true jika memang belum ada data
+    if (!mounted) return;
+    // Hanya set isLoading true jika memang belum ada data dan belum dalam proses loading
+    if (categories.isEmpty && !isLoading) {
       setState(() {
         isLoading = true;
       });
@@ -99,7 +144,8 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
       }
     } catch (e) {
       print("Gagal mengambil kategori: $e");
-      // Di sini Anda bisa menampilkan Snackbar atau pesan error jika diperlukan
+      // Jika fetch gagal tapi ada data cache, biarkan data cache ditampilkan
+      // isLoading akan di-set false di finally
     } finally {
       if (mounted) {
         setState(() => isLoading = false);
@@ -108,31 +154,35 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
   }
 
   Future<void> _refreshData() async {
-    // Set isLoading true saat memulai refresh untuk menampilkan indicator
-    // jika diinginkan, atau biarkan RefreshIndicator yang handle visualnya.
+    // Tidak perlu setState isLoading = true di sini secara eksplisit jika RefreshIndicator sudah menangani UI
     await _checkInternetAndFetchData();
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final customColors = theme.extension<CustomThemeColors>()!;
+    final bool isDarkMode = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: lightGreenBackground, // Background lebih lembut
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           'Kategori Sampah',
-          style: GoogleFonts.poppins(
-            // Menggunakan GoogleFonts
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+          // Style dari AppBarTheme di main.dart
         ),
-        backgroundColor: primaryColor,
-        elevation: 1.0, // Elevasi AppBar yang halus
+        // backgroundColor, iconTheme, titleTextStyle dari AppBarTheme
+        elevation: 1.0,
       ),
       body:
-          isLoading
-              ? Center(child: CircularProgressIndicator(color: primaryColor))
-              : categories.isEmpty
+          isLoading &&
+                  categories
+                      .isEmpty // Tampilkan loading hanya jika data benar-benar kosong dan sedang loading
+              ? Center(
+                child: CircularProgressIndicator(color: theme.primaryColor),
+              )
+              : categories.isEmpty &&
+                  !isLoading // Tampilkan empty state jika data kosong setelah loading selesai
               ? Center(
                 child: Padding(
                   padding: const EdgeInsets.all(30.0),
@@ -142,15 +192,18 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
                       Icon(
                         Icons.list_alt_rounded,
                         size: 80,
-                        color: Colors.grey.shade400,
+                        color: theme.hintColor.withOpacity(
+                          0.7,
+                        ), // Warna ikon dari tema
                       ),
                       const SizedBox(height: 20),
                       Text(
                         "Belum ada kategori sampah.",
                         style: GoogleFonts.poppins(
-                          // Menggunakan GoogleFonts
                           fontSize: 17,
-                          color: Colors.grey.shade600,
+                          color:
+                              customColors
+                                  .secondaryTextColor, // Warna teks dari tema
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -158,27 +211,33 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
                       Text(
                         "Silakan cek kembali nanti atau coba refresh halaman.",
                         style: GoogleFonts.poppins(
-                          // Menggunakan GoogleFonts
                           fontSize: 14,
-                          color: Colors.grey.shade500,
+                          color: theme.hintColor, // Warna teks dari tema
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
                       ElevatedButton.icon(
-                        icon: Icon(Icons.refresh, color: Colors.white),
+                        icon: Icon(
+                          Icons.refresh,
+                          color: theme.colorScheme.onPrimary,
+                        ),
                         label: Text(
                           "Refresh",
-                          style: GoogleFonts.poppins(color: Colors.white),
+                          style: GoogleFonts.poppins(
+                            color: theme.colorScheme.onPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         onPressed: _refreshData,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
+                          backgroundColor:
+                              theme.primaryColor, // Warna tombol dari tema
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 20,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
                             vertical: 12,
                           ),
                         ),
@@ -189,12 +248,13 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
               )
               : RefreshIndicator(
                 onRefresh: _refreshData,
-                color: primaryColor, // Warna indikator refresh
+                color: theme.primaryColor,
+                backgroundColor: theme.cardColor,
                 child: ListView.builder(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16.0,
                     vertical: 20.0,
-                  ), // Padding list
+                  ),
                   itemCount: categories.length,
                   itemBuilder: (context, index) {
                     final category = categories[index];
@@ -209,30 +269,34 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
                           MaterialPageRoute(
                             builder:
                                 (_) => KategoriDetailScreen(kategori: category),
+                            // KategoriDetailScreen juga perlu diadaptasi untuk tema
                           ),
                         );
                       },
                       child: Card(
+                        color:
+                            theme.cardColor, // Warna background kartu dari tema
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            16,
-                          ), // Radius lebih besar
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        elevation: 3, // Elevasi lebih halus
-                        shadowColor: cardShadowColor,
-                        margin: const EdgeInsets.only(
-                          bottom: 16,
-                        ), // Jarak antar kartu
+                        elevation: 3,
+                        shadowColor: theme.shadowColor.withOpacity(
+                          isDarkMode ? 0.15 : 0.08,
+                        ), // Warna shadow dari tema
+                        margin: const EdgeInsets.only(bottom: 16),
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment:
+                                CrossAxisAlignment
+                                    .center, // Align vertikal ke tengah
                             children: [
-                              // Nomor urut dengan style
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: primaryColor.withOpacity(0.1),
+                                  color: theme.primaryColor.withOpacity(
+                                    isDarkMode ? 0.2 : 0.1,
+                                  ), // Background nomor
                                   shape: BoxShape.circle,
                                 ),
                                 child: Text(
@@ -240,16 +304,14 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
                                   style: GoogleFonts.poppins(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
-                                    color: primaryColor,
+                                    color:
+                                        theme.primaryColorDark, // Warna nomor
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 16),
-                              // Gambar Kategori
                               ClipRRect(
-                                borderRadius: BorderRadius.circular(
-                                  12,
-                                ), // Radius gambar
+                                borderRadius: BorderRadius.circular(12),
                                 child: CachedNetworkImage(
                                   imageUrl: imageUrl ?? "",
                                   width: 80,
@@ -259,16 +321,20 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
                                       (context, url) => Container(
                                         width: 80,
                                         height: 80,
-                                        color: Colors.grey.shade200,
+                                        color: theme.dividerColor.withOpacity(
+                                          0.1,
+                                        ), // Warna placeholder
                                         child: Icon(
                                           Icons.image_outlined,
-                                          color: Colors.grey.shade400,
+                                          color: theme.hintColor.withOpacity(
+                                            0.5,
+                                          ), // Warna ikon placeholder
                                           size: 40,
                                         ),
                                       ),
                                   errorWidget:
                                       (context, url, error) => Image.asset(
-                                        defaultImage, // Gambar default jika error
+                                        defaultImage,
                                         width: 80,
                                         height: 80,
                                         fit: BoxFit.cover,
@@ -276,27 +342,34 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
                                 ),
                               ),
                               const SizedBox(width: 16),
-                              // Detail Kategori
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment
+                                          .center, // Align teks ke tengah
                                   children: [
                                     Text(
                                       category['name'] ?? 'Tanpa Nama',
                                       style: GoogleFonts.poppins(
-                                        fontSize: 17,
-                                        fontWeight:
-                                            FontWeight.w600, // Lebih tebal
-                                        color: Colors.black87,
+                                        fontSize:
+                                            17.5, // Ukuran font disesuaikan
+                                        fontWeight: FontWeight.w600,
+                                        color:
+                                            customColors
+                                                .titleTextColor, // Warna dari tema
                                       ),
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
                                       "Poin: ${category['point_per_unit']} / ${category['unit']}",
                                       style: GoogleFonts.poppins(
-                                        fontSize: 14,
+                                        fontSize:
+                                            14.5, // Ukuran font disesuaikan
                                         fontWeight: FontWeight.w500,
-                                        color: primaryColor, // Warna poin
+                                        color:
+                                            theme
+                                                .primaryColor, // Warna poin dari tema
                                       ),
                                     ),
                                     const SizedBox(height: 6),
@@ -304,21 +377,25 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
                                       category['description'] ??
                                           'Tidak ada deskripsi.',
                                       style: GoogleFonts.poppins(
-                                        fontSize: 13,
-                                        color: Colors.black54,
-                                        height: 1.4, // Jarak antar baris
+                                        fontSize:
+                                            13.5, // Ukuran font disesuaikan
+                                        color:
+                                            customColors
+                                                .secondaryTextColor, // Warna dari tema
+                                        height: 1.4,
                                       ),
-                                      maxLines: 2, // Batasi deskripsi
+                                      maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ],
                                 ),
                               ),
-                              // Icon panah untuk indikasi bisa diklik
                               const SizedBox(width: 8),
                               Icon(
                                 Icons.arrow_forward_ios_rounded,
-                                color: Colors.grey.shade400,
+                                color:
+                                    theme
+                                        .hintColor, // Warna ikon panah dari tema
                                 size: 18,
                               ),
                             ],

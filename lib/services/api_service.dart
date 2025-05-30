@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart';
 // ignore: unused_import
 import 'package:tubes_mobile/utils/shared_prefs.dart';
+import 'dart:async';
 
 class ApiService {
   static const String baseUrl = "http://10.0.2.2:5000";
@@ -24,6 +25,8 @@ class ApiService {
     int userId,
     int kategoriId,
     int beratGram,
+    double latitude,
+    double longitude,
   ) async {
     final url = Uri.parse('$baseUrl/setor-sampah');
     final response = await http.post(
@@ -33,15 +36,27 @@ class ApiService {
         'user_id': userId,
         'waste_id': kategoriId,
         'weight': beratGram,
+        'latitude': latitude, // Kirim latitude
+        'longitude': longitude, // Kirim longitude
       }),
     );
 
     if (response.statusCode == 200) {
       return json.decode(response.body);
     } else {
-      print('Error: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-      throw Exception('Gagal setor sampah');
+      print('Error setorSampah API: ${response.statusCode}');
+      print('Response Body setorSampah: ${response.body}');
+      // Coba parse error message dari backend jika ada
+      try {
+        final errorData = json.decode(response.body);
+        if (errorData is Map<String, dynamic> &&
+            errorData.containsKey('error')) {
+          throw Exception('Gagal setor sampah: ${errorData['error']}');
+        }
+      } catch (e) {
+        // Gagal parse atau format tidak sesuai, fallback ke pesan umum
+      }
+      throw Exception('Gagal setor sampah (Status: ${response.statusCode})');
     }
   }
 
@@ -58,14 +73,14 @@ class ApiService {
         "username": username,
         "email": email,
         "password": password,
-        "full_name": fullName, // kirim ke backend
+        "full_name": fullName,
       }),
     );
     return jsonDecode(response.body);
   }
 
   static Future<Map<String, dynamic>> login(
-    String identifier, // Bisa email atau username
+    String identifier,
     String password,
   ) async {
     final response = await http.post(
@@ -167,5 +182,141 @@ class ApiService {
       }),
     );
     return jsonDecode(response.body);
+  }
+
+  static Future<dynamic> _handleResponse(
+    http.Response response,
+    String operation,
+  ) async {
+    print(
+      'ApiService ($operation): Status ${response.statusCode}, Body: ${response.body}',
+    );
+    Map<String, dynamic>? responseBody;
+    try {
+      if (response.body.isNotEmpty) {
+        responseBody = jsonDecode(response.body);
+      }
+    } catch (e) {
+      print(
+        'ApiService ($operation): Failed to decode JSON response body: ${response.body}',
+      );
+      throw Exception(
+        'Gagal memproses respons server (Status: ${response.statusCode})',
+      );
+    }
+
+    if (response.statusCode == 200) {
+      if (responseBody == null && operation.contains("get")) {
+        // Untuk GET yang mungkin mengembalikan nilai non-map
+        throw Exception('Data tidak valid dari server untuk $operation.');
+      }
+      return responseBody ??
+          {}; // Kembalikan map kosong jika body kosong tapi status 200 (jarang terjadi untuk API kita)
+    } else if (response.statusCode == 404) {
+      throw Exception(
+        'Sumber daya tidak ditemukan di server untuk $operation.',
+      );
+    } else {
+      throw Exception(
+        'Gagal $operation: ${responseBody?['error'] ?? response.reasonPhrase} (Status: ${response.statusCode})',
+      );
+    }
+  }
+
+  static Future<T> _handleRequest<T>(
+    Future<http.Response> requestFuture,
+    String operation,
+    T Function(dynamic data) parser,
+  ) async {
+    try {
+      final response = await requestFuture.timeout(
+        const Duration(seconds: 10),
+      ); // Default timeout 10 detik
+      final dynamic decodedData = await _handleResponse(response, operation);
+      return parser(decodedData);
+    } on TimeoutException catch (_) {
+      print('ApiService ($operation): Timeout');
+      throw Exception(
+        'Waktu tunggu koneksi habis untuk $operation. Periksa koneksi Anda.',
+      );
+    } catch (e) {
+      print('ApiService ($operation): Exception: $e');
+      if (e is Exception &&
+          (e.toString().contains('SocketException') ||
+              e.toString().contains('Network is unreachable'))) {
+        throw Exception(
+          'Tidak dapat terhubung ke server. Periksa koneksi internet atau alamat server.',
+        );
+      }
+      rethrow; // Lempar kembali exception yang sudah diproses atau exception asli
+    }
+  }
+
+  /// Fungsi untuk mendapatkan poin pengguna saat ini dari server.
+  static Future<int> getUserPoints(String userId) async {
+    final url = Uri.parse('$baseUrl/user/$userId/points');
+    print('ApiService: Calling GET $url');
+    return _handleRequest(
+      http.get(
+        url,
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      ),
+      'mengambil poin pengguna',
+      (data) {
+        if (data != null && data['points'] != null) {
+          return data['points'] as int;
+        }
+        throw Exception('Format data poin tidak valid dari server.');
+      },
+    );
+  }
+
+  /// Fungsi untuk mendapatkan saldo pengguna saat ini dari server.
+  static Future<double> getUserBalance(String userId) async {
+    final url = Uri.parse('$baseUrl/user/$userId/balance');
+    print('ApiService: Calling GET $url');
+    return _handleRequest(
+      http.get(
+        url,
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      ),
+      'mengambil saldo pengguna',
+      (data) {
+        if (data != null && data['balance'] != null) {
+          return (data['balance'] as num).toDouble();
+        }
+        throw Exception('Format data saldo tidak valid dari server.');
+      },
+    );
+  }
+
+  /// Fungsi untuk melakukan penukaran poin melalui API.
+  static Future<Map<String, dynamic>> tukarPoinRemote(
+    String userId,
+    int poinDitukar,
+    int nilaiSaldoDidapat,
+  ) async {
+    final url = Uri.parse('$baseUrl/tukar-poin');
+    print(
+      'ApiService: Calling POST $url with body: {user_id: $userId, poin_ditukar: $poinDitukar, nilai_saldo_didapat: $nilaiSaldoDidapat}',
+    );
+    return _handleRequest(
+      http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json; charset=UTF-8'},
+            body: jsonEncode({
+              'user_id': userId,
+              'poin_ditukar': poinDitukar,
+              'nilai_saldo_didapat': nilaiSaldoDidapat,
+            }),
+          )
+          .timeout(
+            const Duration(seconds: 15),
+          ), // Timeout khusus untuk operasi POST ini
+      'melakukan penukaran poin',
+      (data) =>
+          data as Map<String, dynamic>, // Server diharapkan mengembalikan Map
+    );
   }
 }

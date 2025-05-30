@@ -1,48 +1,47 @@
+// ignore_for_file: use_key_in_widget_constructors, prefer_const_constructors_in_immutables, deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../main.dart';
 
 class InfoScreen extends StatelessWidget {
-  // Definisikan warna utama untuk konsistensi dan kemudahan modifikasi
-  final Color primaryColor = const Color.fromARGB(255, 7, 168, 13);
-  final Color lightGreenBackground = Colors.green.shade50;
-  final Color darkGreenText = Colors.green.shade800; // Untuk judul dalam kartu
-  final Color bodyTextColor = Colors.black.withOpacity(0.75);
-  final Color cardShadowColor = Colors.black.withOpacity(0.06);
+  // Tambahkan constructor dengan key
+  InfoScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // ignore: unused_local_variable
+    final customColors = theme.extension<CustomThemeColors>()!;
+    // ignore: unused_local_variable
+    final bool isDarkMode = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: lightGreenBackground,
+      backgroundColor: theme.scaffoldBackgroundColor, // Gunakan warna dari tema
       appBar: AppBar(
         title: Text(
           "Info Pengelolaan Sampah",
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+          // Style sudah diatur oleh AppBarTheme di main.dart
         ),
-        backgroundColor: primaryColor,
+        // backgroundColor dan iconTheme juga dari AppBarTheme
         elevation: 1.0,
       ),
       body: SingleChildScrollView(
-        // Scroll default adalah vertikal
         physics: const BouncingScrollPhysics(),
-
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildInfoCard(
-              context,
+              context, // Pass context
               title: "Mengapa Pengelolaan Sampah Penting?",
               content:
                   "Pengelolaan sampah membantu menjaga kebersihan lingkungan, mengurangi pencemaran, dan memaksimalkan daur ulang bahan-bahan yang masih bisa digunakan.",
             ),
-            // Memberi jarak antar kartu secara vertikal
             const SizedBox(height: 20),
-            _buildJenisSampahCard(context),
+            _buildJenisSampahCard(context), // Pass context
             const SizedBox(height: 20),
-            _buildTipsCard(context),
+            _buildTipsCard(context), // Pass context
             const SizedBox(height: 20),
           ],
         ),
@@ -50,20 +49,30 @@ class InfoScreen extends StatelessWidget {
     );
   }
 
-  // Helper untuk judul kartu dengan ikon
-  Widget _buildCardTitleWithIcon(String title, IconData icon) {
+  Widget _buildCardTitleWithIcon(
+    BuildContext context,
+    String title,
+    IconData icon,
+  ) {
+    final theme = Theme.of(context);
+    final customColors = theme.extension<CustomThemeColors>()!;
     return Row(
       children: [
-        Icon(icon, color: primaryColor, size: 26),
+        Icon(
+          icon,
+          color: theme.primaryColor,
+          size: 26,
+        ), // Gunakan primaryColor dari tema
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             title,
             style: GoogleFonts.poppins(
-              fontSize:
-                  17, // Sedikit lebih kecil dari 18 agar tidak terlalu dominan
+              fontSize: 17,
               fontWeight: FontWeight.bold,
-              color: darkGreenText,
+              color:
+                  customColors
+                      .titleTextColor, // Gunakan titleTextColor dari tema
             ),
           ),
         ),
@@ -72,57 +81,23 @@ class InfoScreen extends StatelessWidget {
   }
 
   Widget _buildInfoCard(
-    BuildContext context, {
+    BuildContext context, { // Tambahkan context
     required String title,
     required String content,
   }) {
+    final theme = Theme.of(context);
+    final customColors = theme.extension<CustomThemeColors>()!;
     return Container(
-      // width: MediaQuery.of(context).size.width * 0.8, // Dihapus, lebar akan menyesuaikan parent (Column)
-      padding: const EdgeInsets.all(18), // Padding internal kartu
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16), // Radius lebih modern
-        boxShadow: [
-          BoxShadow(
-            blurRadius: 10, // Blur lebih halus
-            color: cardShadowColor,
-            offset: const Offset(0, 3), // Sedikit offset Y untuk shadow
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min, // Kartu menyesuaikan tinggi konten
-        children: [
-          _buildCardTitleWithIcon(
-            title,
-            Icons.eco_rounded,
-          ), // Menggunakan helper judul
-          const SizedBox(height: 12),
-          Text(
-            content,
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              color: bodyTextColor,
-              height: 1.5, // Jarak antar baris untuk readability
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildJenisSampahCard(BuildContext context) {
-    return Container(
-      // width: MediaQuery.of(context).size.width * 0.8, // Dihapus
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor, // Gunakan cardColor dari tema
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             blurRadius: 10,
-            color: cardShadowColor,
+            color: theme.shadowColor.withOpacity(
+              0.06,
+            ), // Gunakan shadowColor dari tema
             offset: const Offset(0, 3),
           ),
         ],
@@ -132,29 +107,83 @@ class InfoScreen extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildCardTitleWithIcon(
+            context,
+            title,
+            Icons.eco_rounded,
+          ), // Pass context
+          const SizedBox(height: 12),
+          Text(
+            content,
+            style: GoogleFonts.poppins(
+              fontSize: 14.5, // Ukuran font disesuaikan agar lebih mudah dibaca
+              color:
+                  customColors.bodyTextColor, // Gunakan bodyTextColor dari tema
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildJenisSampahCard(BuildContext context) {
+    // Tambahkan context
+    final theme = Theme.of(context);
+    // ignore: unused_local_variable
+    final customColors = theme.extension<CustomThemeColors>()!;
+    final bool isDarkMode = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            blurRadius: 10,
+            color: theme.shadowColor.withOpacity(0.06),
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildCardTitleWithIcon(
+            context,
             "Jenis-Jenis Sampah Umum",
             Icons.category_rounded,
-          ),
-          const SizedBox(height: 16), // Spasi lebih besar sebelum list
+          ), // Pass context
+          const SizedBox(height: 16),
           _buildJenisItem(
-            Icons.restaurant_menu_rounded, // Ikon lebih spesifik
+            context, // Pass context
+            Icons.restaurant_menu_rounded,
             "Sampah Organik",
             "Contoh: Sisa makanan, kulit buah, sayuran, daun kering.",
-            Colors.green.shade600,
+            isDarkMode
+                ? Colors.green.shade300
+                : Colors.green.shade600, // Warna ikon disesuaikan mode
           ),
           const SizedBox(height: 12),
           _buildJenisItem(
-            Icons.inventory_2_outlined, // Ikon untuk barang/kemasan
+            context, // Pass context
+            Icons.inventory_2_outlined,
             "Sampah Anorganik",
             "Contoh: Plastik, botol, kaleng, kertas, kaca.",
-            Colors.blue.shade600,
+            isDarkMode
+                ? Colors.blue.shade300
+                : Colors.blue.shade600, // Warna ikon disesuaikan mode
           ),
           const SizedBox(height: 12),
           _buildJenisItem(
-            Icons.warning_amber_rounded, // Ikon B3
+            context, // Pass context
+            Icons.warning_amber_rounded,
             "Sampah B3 (Berbahaya & Beracun)",
             "Contoh: Baterai bekas, lampu neon, elektronik rusak, pestisida.",
-            Colors.red.shade600,
+            isDarkMode
+                ? Colors.red.shade300
+                : Colors.red.shade600, // Warna ikon disesuaikan mode
           ),
         ],
       ),
@@ -162,29 +191,33 @@ class InfoScreen extends StatelessWidget {
   }
 
   Widget _buildJenisItem(
+    BuildContext context, // Tambahkan context
     IconData icon,
     String title,
     String subtitle,
-    Color color,
+    Color iconColor, // Warna ikon tetap spesifik untuk membedakan jenis sampah
   ) {
+    final theme = Theme.of(context);
+    final customColors = theme.extension<CustomThemeColors>()!;
+    final bool isDarkMode = theme.brightness == Brightness.dark;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: 4.0,
-      ), // Padding untuk setiap item
+      padding: const EdgeInsets.symmetric(vertical: 6.0), // Padding antar item
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start, // Align ke atas jika teks panjang
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            radius: 18, // Ukuran avatar disesuaikan
-            backgroundColor: color.withOpacity(0.12),
+            radius: 20, // Ukuran avatar disesuaikan
+            backgroundColor: iconColor.withOpacity(
+              isDarkMode ? 0.25 : 0.12,
+            ), // Background avatar disesuaikan mode
             child: Icon(
               icon,
-              color: color,
+              color: iconColor, // Warna ikon
               size: 20,
-            ), // Ukuran ikon dalam avatar
+            ),
           ),
-          const SizedBox(width: 12), // Jarak antara ikon dan teks
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,17 +225,20 @@ class InfoScreen extends StatelessWidget {
                 Text(
                   title,
                   style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600, // Judul item lebih tebal
-                    color: darkGreenText.withOpacity(0.9),
+                    fontSize: 15, // Ukuran font disesuaikan
+                    fontWeight: FontWeight.w600,
+                    color: customColors.titleTextColor?.withOpacity(
+                      0.95,
+                    ), // Warna dari tema
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   subtitle,
                   style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    color: bodyTextColor.withOpacity(0.8),
+                    fontSize: 13, // Ukuran font disesuaikan
+                    color: customColors.secondaryTextColor, // Warna dari tema
+                    height: 1.4,
                   ),
                 ),
               ],
@@ -214,16 +250,18 @@ class InfoScreen extends StatelessWidget {
   }
 
   Widget _buildTipsCard(BuildContext context) {
+    // Tambahkan context
+    final theme = Theme.of(context);
+    // customColors tidak digunakan secara langsung di sini, tapi di _buildTip melalui context
     return Container(
-      // width: MediaQuery.of(context).size.width * 0.8, // Dihapus
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             blurRadius: 10,
-            color: cardShadowColor,
+            color: theme.shadowColor.withOpacity(0.06),
             offset: const Offset(0, 3),
           ),
         ],
@@ -233,46 +271,64 @@ class InfoScreen extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildCardTitleWithIcon(
+            context,
             "Tips Praktis Mengelola Sampah",
             Icons.lightbulb_outline_rounded,
-          ),
+          ), // Pass context
           const SizedBox(height: 16),
           _buildTip(
+            context,
             "Pisahkan sampah berdasarkan jenisnya (organik, anorganik, B3).",
-          ),
+          ), // Pass context
           _buildTip(
+            context,
             "Gunakan kembali (reuse) barang-barang yang masih layak pakai.",
-          ),
+          ), // Pass context
           _buildTip(
+            context,
             "Daur ulang (recycle) sampah anorganik menjadi produk baru.",
-          ),
-          _buildTip("Olah sampah organik menjadi kompos untuk pupuk tanaman."),
-          _buildTip("Kurangi penggunaan produk sekali pakai (reduce)."),
-          _buildTip("Selalu buang sampah pada tempat yang telah disediakan."),
+          ), // Pass context
+          _buildTip(
+            context,
+            "Olah sampah organik menjadi kompos untuk pupuk tanaman.",
+          ), // Pass context
+          _buildTip(
+            context,
+            "Kurangi penggunaan produk sekali pakai (reduce).",
+          ), // Pass context
+          _buildTip(
+            context,
+            "Selalu buang sampah pada tempat yang telah disediakan.",
+          ), // Pass context
         ],
       ),
     );
   }
 
-  Widget _buildTip(String text) {
+  Widget _buildTip(BuildContext context, String text) {
+    // Tambahkan context
+    final theme = Theme.of(context);
+    final customColors = theme.extension<CustomThemeColors>()!;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0), // Spasi antar tips
+      padding: const EdgeInsets.symmetric(vertical: 7.0), // Spasi antar tips
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             Icons.check_circle_outline_rounded,
-            color: primaryColor,
-            size: 20,
-          ), // Ukuran ikon
+            color: theme.primaryColor, // Gunakan primaryColor dari tema
+            size: 22, // Ukuran ikon disesuaikan
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
               style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: bodyTextColor,
-                height: 1.4, // Jarak antar baris
+                fontSize: 14.5, // Ukuran font disesuaikan
+                color:
+                    customColors
+                        .bodyTextColor, // Gunakan bodyTextColor dari tema
+                height: 1.45,
               ),
             ),
           ),

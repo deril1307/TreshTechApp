@@ -1,19 +1,22 @@
+// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, await_only_futures, unused_import, deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:tubes_mobile/utils/shared_prefs.dart'; // Pastikan path ini benar
+import 'package:tubes_mobile/utils/shared_prefs.dart';
 import 'package:google_fonts/google_fonts.dart';
-// ignore: unused_import
-import 'package:tubes_mobile/services/api_service.dart'; // Pastikan path ini benar
+import 'package:tubes_mobile/services/api_service.dart';
+import 'dart:async';
+import '../main.dart';
 
 class TarikSaldoScreen extends StatefulWidget {
+  const TarikSaldoScreen({super.key}); // Tambahkan const dan Key
+
   @override
   _TarikSaldoScreenState createState() => _TarikSaldoScreenState();
 }
 
 class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
   String? _selectedAmount;
-
   final List<String> _amountOptions = [
     '50.000',
     '100.000',
@@ -21,51 +24,46 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
     '500.000',
     '1.000.000',
   ];
-
-  double saldo = 0.0; // Akan di-update oleh _loadUserData
-  // int poin = 0; // poin tidak digunakan di screen ini berdasarkan kode Anda
+  double saldo = 0.0;
+  bool _isLoading = false; // Untuk loading indicator pada tombol
 
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  // --- LOGIKA BACKEND ANDA (TIDAK DIUBAH) ---
+  // --- LOGIKA BACKEND (TIDAK DIUBAH KECUALI UNTUK MOUNTED CHECKS) ---
   Future<void> _initNotifications() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings(
-          '@mipmap/ic_launcher',
-        ); // Pastikan icon ada
-
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     const InitializationSettings initializationSettings =
         InitializationSettings(android: initializationSettingsAndroid);
-
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
   Future<void> _showUINotification(String title, String body) async {
-    // Renamed to avoid conflict
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-          'tarik_saldo_channel',
-          'Tarik Saldo Notifications',
-          channelDescription: 'Notifikasi untuk transaksi tarik saldo',
+          'tarik_saldo_channel_ui', // Channel ID unik
+          'Tarik Saldo UI Notifications',
+          channelDescription: 'Notifikasi UI untuk transaksi tarik saldo',
           importance: Importance.max,
           priority: Priority.high,
         );
-
     const NotificationDetails platformDetails = NotificationDetails(
       android: androidDetails,
     );
-
-    await flutterLocalNotificationsPlugin.show(0, title, body, platformDetails);
+    await flutterLocalNotificationsPlugin.show(
+      1,
+      title,
+      body,
+      platformDetails,
+    ); // ID notifikasi berbeda
   }
 
   Future<void> _loadUserData() async {
     double savedSaldo = await SharedPrefs.getSaldo();
-    // int savedPoin = await SharedPrefs.getPoin(); // poin tidak digunakan di UI ini
     if (mounted) {
       setState(() {
         saldo = savedSaldo;
-        // poin = savedPoin;
       });
     }
   }
@@ -73,7 +71,6 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
   Future<void> _requestNotificationPermission() async {
     PermissionStatus status = await Permission.notification.request();
     if (status.isPermanentlyDenied) {
-      // Pertimbangkan untuk menampilkan dialog yang mengarahkan pengguna ke pengaturan aplikasi
       openAppSettings();
     }
   }
@@ -87,10 +84,13 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
   }
 
   void _tarikSaldo() async {
+    // ignore: unused_local_variable
+    final theme = Theme.of(context); // Ambil theme untuk snackbar
     if (_selectedAmount == null) {
       _showCustomSnackbar(
         'Harap pilih jumlah saldo terlebih dahulu.',
         isError: true,
+        context: context,
       );
       return;
     }
@@ -100,32 +100,35 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
     );
 
     if (jumlahTarik == null) {
-      _showCustomSnackbar('Jumlah saldo tidak valid.', isError: true);
+      _showCustomSnackbar(
+        'Jumlah saldo tidak valid.',
+        isError: true,
+        context: context,
+      );
       return;
     }
 
-    // Anda mungkin perlu membuat SharedPrefs.getUserId() menjadi async jika belum
-    // Untuk contoh ini, saya asumsikan sinkron berdasarkan kode asli
-    final userId = SharedPrefs.getUserId();
+    final String? userIdString =
+        await SharedPrefs.getUserId(); // Jadikan async jika SharedPrefs.getUserId async
 
-    if (userId == null) {
+    if (userIdString == null) {
       _showCustomSnackbar(
         'User ID tidak ditemukan. Mohon login ulang.',
         isError: true,
+        context: context,
       );
       return;
     }
 
-    // Cek apakah saldo mencukupi
     if (saldo < jumlahTarik) {
       _showCustomSnackbar(
-        'Saldo Anda tidak mencukupi untuk melakukan penarikan ini.',
+        'Saldo Anda tidak mencukupi.',
         isError: true,
+        context: context,
       );
       return;
     }
 
-    // Tampilkan dialog konfirmasi
     bool? confirm = await _showConfirmationDialog(
       title: "Konfirmasi Penarikan",
       content: "Anda yakin ingin menarik saldo sebesar Rp$_selectedAmount?",
@@ -133,99 +136,97 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
       cancelText: "Batal",
     );
 
-    if (confirm != true) {
-      return; // Pengguna membatalkan
-    }
+    if (confirm != true) return;
+
+    if (mounted) setState(() => _isLoading = true);
 
     try {
-      // Tampilkan loading indicator jika perlu
-      // Misalnya: showDialog(context: context, builder: (_) => Center(child: CircularProgressIndicator()));
-
       final result = await ApiService.tarikSaldo(
-        userId:
-            userId, // Pastikan userId adalah string jika diperlukan ApiService
+        userId: userIdString,
         amount: jumlahTarik,
       );
 
-      // Navigator.pop(context); // Tutup loading indicator
+      if (mounted) {
+        if (result['status'] == 'success') {
+          var newBalance = result['new_balance'];
+          double updatedSaldo = saldo; // Default ke saldo saat ini
+          if (newBalance is int) {
+            updatedSaldo = newBalance.toDouble();
+          } else if (newBalance is double) {
+            updatedSaldo = newBalance;
+          } else if (newBalance is String) {
+            updatedSaldo = double.tryParse(newBalance) ?? saldo;
+          }
 
-      if (result['status'] == 'success') {
-        if (mounted) {
           setState(() {
-            // Asumsikan API mengembalikan 'new_balance' sebagai double atau int
-            var newBalance = result['new_balance'];
-            if (newBalance is int) {
-              saldo = newBalance.toDouble();
-            } else if (newBalance is double) {
-              saldo = newBalance;
-            } else if (newBalance is String) {
-              saldo = double.tryParse(newBalance) ?? saldo;
-            }
-            _selectedAmount = null; // Reset pilihan
+            saldo = updatedSaldo;
+            _selectedAmount = null;
           });
+
+          await SharedPrefs.saveSaldo(saldo);
+          final formattedAmount = jumlahTarik
+              .toStringAsFixed(0)
+              .replaceAllMapped(
+                RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+                (m) => '${m[1]}.',
+              );
+          final successMessage =
+              'Permintaan tarik saldo Rp $formattedAmount telah dikirim.';
+
+          await _showUINotification('Tarik Saldo Berhasil', successMessage);
+          await SharedPrefs.tambahRiwayat({
+            'kegiatan':
+                'Penarikan Saldo Sebesar Rp $formattedAmount', // Deskripsi lebih jelas
+            'jenis': 'Tarik Saldo',
+            'tanggal': DateTime.now().toIso8601String(),
+            'saldo': "Rp $formattedAmount",
+          });
+          _showCustomSnackbar(successMessage, context: context); // Pass context
+        } else {
+          _showCustomSnackbar(
+            result['message'] ?? 'Gagal melakukan penarikan saldo.',
+            isError: true,
+            context: context,
+          );
         }
-
-        await SharedPrefs.saveSaldo(saldo);
-
-        final formattedAmount = jumlahTarik
-            .toStringAsFixed(0)
-            .replaceAllMapped(
-              RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-              (m) => '${m[1]}.',
-            );
-
-        final successMessage =
-            'Permintaan tarik saldo sebesar Rp $formattedAmount telah dikirim.';
-
-        await _showUINotification('Tarik Saldo Berhasil', successMessage);
-
-        await SharedPrefs.tambahRiwayat({
-          'kegiatan': 'Penarikan Saldo',
-          'jenis': 'Tarik Saldo',
-          'tanggal': DateTime.now().toIso8601String(),
-          'saldo': "Rp $formattedAmount", // Simpan dengan format
-        });
-
-        _showCustomSnackbar(successMessage);
-      } else {
-        _showCustomSnackbar(
-          result['message'] ?? 'Gagal melakukan penarikan saldo.',
-          isError: true,
-        );
       }
     } catch (e) {
-      // Navigator.pop(context); // Tutup loading indicator jika masih ada
-      _showCustomSnackbar(
-        'Terjadi kesalahan jaringan atau server: ${e.toString()}',
-        isError: true,
-      );
+      if (mounted) {
+        _showCustomSnackbar(
+          'Terjadi kesalahan: ${e.toString()}',
+          isError: true,
+          context: context,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
-  // --- AKHIR LOGIKA BACKEND ANDA ---
+  // --- AKHIR LOGIKA BACKEND ---
 
-  // --- BAGIAN TAMPILAN (UI) YANG DIPERBARUI ---
-
-  // Snackbar kustom yang lebih sesuai tema
-  void _showCustomSnackbar(String message, {bool isError = false}) {
+  void _showCustomSnackbar(
+    String message, {
+    bool isError = false,
+    required BuildContext context,
+  }) {
     if (!mounted) return;
+    final theme = Theme.of(context); // Ambil theme dari context yang di-pass
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           message,
           style: GoogleFonts.poppins(
-            color: Colors.white,
+            color:
+                isError
+                    ? theme.colorScheme.onError
+                    : Colors.white, // Warna teks disesuaikan
             fontWeight: FontWeight.w500,
           ),
         ),
         backgroundColor:
             isError
-                ? Colors.red.shade600
-                : const Color.fromARGB(
-                  255,
-                  18,
-                  148,
-                  25,
-                ), // Warna tema utama untuk sukses
+                ? theme.colorScheme.error
+                : theme.primaryColor, // Warna dari tema
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
@@ -240,11 +241,16 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
     required String confirmText,
     String? cancelText,
   }) {
+    final theme = Theme.of(context);
+    final customColors = theme.extension<CustomThemeColors>()!;
+
     return showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder:
-          (context) => AlertDialog(
+          (dialogContext) => AlertDialog(
+            // Gunakan dialogContext
+            backgroundColor: theme.cardColor, // Warna background dialog
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -252,34 +258,41 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
               title,
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.bold,
-                color: const Color.fromARGB(255, 7, 168, 13),
+                color: customColors.titleTextColor, // Warna judul dari tema
               ),
             ),
-            content: Text(content, style: GoogleFonts.poppins(fontSize: 15)),
+            content: Text(
+              content,
+              style: GoogleFonts.poppins(
+                fontSize: 15.5,
+                color: customColors.bodyTextColor,
+              ),
+            ), // Warna konten dari tema
             actionsPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 12,
             ),
+            actionsAlignment: MainAxisAlignment.end,
             actions: [
               if (cancelText != null)
                 TextButton(
-                  onPressed: () => Navigator.pop(context, false),
+                  onPressed: () => Navigator.pop(dialogContext, false),
                   child: Text(
                     cancelText,
                     style: GoogleFonts.poppins(
-                      color: Colors.grey.shade700,
+                      color:
+                          customColors
+                              .secondaryTextColor, // Warna tombol batal dari tema
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(
-                    255,
-                    7,
-                    168,
-                    13,
-                  ), // Warna tema
+                  backgroundColor:
+                      theme.primaryColor, // Warna tombol konfirmasi dari tema
+                  foregroundColor:
+                      theme.colorScheme.onPrimary, // Warna teks tombol
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -288,13 +301,10 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
                     vertical: 12,
                   ),
                 ),
-                onPressed: () => Navigator.pop(context, true),
+                onPressed: () => Navigator.pop(dialogContext, true),
                 child: Text(
                   confirmText,
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -304,46 +314,39 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Color primaryGreen = const Color.fromARGB(255, 7, 168, 13);
-    final Color lightGreenBg = const Color.fromARGB(
-      255,
-      230,
-      245,
-      231,
-    ); // Warna background lembut
+    final theme = Theme.of(context);
+    final customColors = theme.extension<CustomThemeColors>()!;
+    final bool isDarkMode = theme.brightness == Brightness.dark;
 
     final formattedSaldo = saldo
         .toStringAsFixed(0)
         .replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
 
     return Scaffold(
-      backgroundColor: Colors.white, // Background utama layar
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           "Tarik Saldo",
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+          // Style dari AppBarTheme di main.dart
         ),
-        backgroundColor: primaryGreen,
-        elevation: 1.0, // Sedikit shadow
+        // backgroundColor dan iconTheme dari AppBarTheme
+        elevation: 1.0,
       ),
       body: SingleChildScrollView(
-        // Agar bisa di-scroll jika konten panjang
-        padding: const EdgeInsets.all(20.0), // Padding menyeluruh
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Kartu Info Saldo
             Container(
               padding: const EdgeInsets.all(20.0),
               decoration: BoxDecoration(
-                color: lightGreenBg, // Background hijau muda untuk kartu
+                color: theme.primaryColor.withOpacity(
+                  isDarkMode ? 0.15 : 0.08,
+                ), // Warna kartu saldo
                 borderRadius: BorderRadius.circular(16.0),
                 boxShadow: [
                   BoxShadow(
-                    color: primaryGreen.withOpacity(0.1),
+                    color: theme.shadowColor.withOpacity(0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -353,12 +356,11 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
                 children: [
                   Icon(
                     Icons.account_balance_wallet_rounded,
-                    color: primaryGreen,
+                    color: theme.primaryColor,
                     size: 40,
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    // Expanded agar teks tidak overflow
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -366,7 +368,7 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
                           "Saldo Anda Saat Ini",
                           style: GoogleFonts.poppins(
                             fontSize: 15,
-                            color: primaryGreen.withOpacity(0.9),
+                            color: customColors.secondaryTextColor,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -374,9 +376,11 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
                         Text(
                           "Rp $formattedSaldo",
                           style: GoogleFonts.poppins(
-                            fontSize: 26, // Ukuran font saldo lebih besar
+                            fontSize: 28, // Ukuran font saldo lebih besar
                             fontWeight: FontWeight.bold,
-                            color: primaryGreen,
+                            color:
+                                theme
+                                    .primaryColorDark, // Warna saldo lebih tegas
                           ),
                         ),
                       ],
@@ -386,36 +390,24 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
               ),
             ),
             const SizedBox(height: 32),
-
-            // Judul Pilihan Jumlah
             Text(
               "Pilih Jumlah Penarikan",
               style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: customColors.titleTextColor, // Warna judul dari tema
               ),
             ),
             const SizedBox(height: 12),
-
-            // Dropdown Pilihan Jumlah
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 5,
-              ), // Padding dalam dropdown
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(
-                  color: Colors.grey.shade300,
-                  width: 1.5,
-                ), // Border lebih tebal dan lembut
-                borderRadius: BorderRadius.circular(
-                  12.0,
-                ), // Border radius lebih besar
+                color: theme.cardColor, // Warna background dropdown
+                border: Border.all(color: theme.dividerColor, width: 1.2),
+                borderRadius: BorderRadius.circular(12.0),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: theme.shadowColor.withOpacity(0.05),
                     blurRadius: 5,
                     offset: const Offset(0, 2),
                   ),
@@ -427,12 +419,15 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
                   isExpanded: true,
                   icon: Icon(
                     Icons.arrow_drop_down_rounded,
-                    color: primaryGreen,
-                    size: 28,
-                  ), // Icon dropdown
+                    color: theme.primaryColor,
+                    size: 30,
+                  ),
                   hint: Text(
                     "Pilih nominal",
-                    style: GoogleFonts.poppins(color: Colors.grey.shade600),
+                    style: GoogleFonts.poppins(
+                      color: theme.hintColor,
+                      fontSize: 16,
+                    ),
                   ),
                   items:
                       _amountOptions.map((value) {
@@ -442,7 +437,7 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
                             'Rp $value',
                             style: GoogleFonts.poppins(
                               fontSize: 16,
-                              color: Colors.black87,
+                              color: customColors.bodyTextColor,
                             ),
                           ),
                         );
@@ -450,7 +445,12 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
                   onChanged: (newValue) {
                     setState(() => _selectedAmount = newValue);
                   },
-                  dropdownColor: Colors.white, // Warna background item dropdown
+                  dropdownColor:
+                      theme.cardColor, // Warna background menu dropdown
+                  style: GoogleFonts.poppins(
+                    color: customColors.bodyTextColor,
+                    fontSize: 16,
+                  ), // Style teks item terpilih
                 ),
               ),
             ),
@@ -461,51 +461,56 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
                 child: Text(
                   "Anda akan menarik: Rp$_selectedAmount",
                   style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: primaryGreen,
+                    fontSize: 14.5,
+                    color: theme.primaryColor,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
-
             const SizedBox(height: 40),
-
-            // Tombol Aksi
             Center(
               child: ElevatedButton.icon(
-                icon: const Icon(
-                  Icons.send_rounded,
-                  color: Colors.white,
-                ), // Icon dengan warna putih
-                label: Text(
-                  "Tarik Saldo Sekarang",
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                onPressed: _tarikSaldo, // Memanggil fungsi _tarikSaldo Anda
+                icon:
+                    _isLoading
+                        ? const SizedBox.shrink()
+                        : Icon(
+                          Icons.send_rounded,
+                          color: theme.colorScheme.onPrimary,
+                          size: 22,
+                        ),
+                label:
+                    _isLoading
+                        ? SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              theme.colorScheme.onPrimary,
+                            ),
+                          ),
+                        )
+                        : Text(
+                          "Tarik Saldo Sekarang",
+                          style: GoogleFonts.poppins(
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                onPressed: _isLoading ? null : _tarikSaldo,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryGreen, // Warna tombol konsisten
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 30,
-                    vertical: 15,
-                  ), // Padding tombol
-                  minimumSize: const Size(
-                    double.infinity,
-                    50,
-                  ), // Tombol full width
+                  backgroundColor: theme.primaryColor,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  minimumSize: const Size(double.infinity, 52),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      12.0,
-                    ), // Border radius tombol
+                    borderRadius: BorderRadius.circular(12.0),
                   ),
-                  elevation: 4, // Shadow tombol
+                  elevation: 3,
                 ),
               ),
             ),
-            const SizedBox(height: 20), // Jarak tambahan di bawah tombol
+            const SizedBox(height: 20),
           ],
         ),
       ),
