@@ -4,9 +4,12 @@ import 'package:dio/dio.dart';
 // ignore: unused_import
 import 'package:tubes_mobile/utils/shared_prefs.dart';
 import 'dart:async';
+// ignore: unused_import
+import 'package:flutter/foundation.dart'; // untuk kReleaseMode
 
 class ApiService {
   static const String baseUrl = "http://10.0.2.2:5000";
+  // static const String baseUrl = "https://e374-114-10-145-44.ngrok-free.app";
 
   static Future<List<dynamic>> getKategoriSampah() async {
     try {

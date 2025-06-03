@@ -1,10 +1,16 @@
+// ignore_for_file: await_only_futures, unused_import, library_private_types_in_public_api, deprecated_member_use, unnecessary_type_check, unnecessary_cast, unused_local_variable, duplicate_ignore
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:tubes_mobile/utils/shared_prefs.dart'; // Pastikan path ini benar
-import 'package:tubes_mobile/services/api_service.dart'; // <-- IMPORT API SERVICE, pastikan path ini benar
+import 'package:tubes_mobile/utils/shared_prefs.dart';
+import 'package:tubes_mobile/services/api_service.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
+
+// Import MyApp dan CustomThemeColors dari main.dart
+// Sesuaikan path '../main.dart' jika struktur folder Anda berbeda
+import '../main.dart'; // Asumsi main.dart ada di direktori parent
 
 class PenukaranPoinScreen extends StatefulWidget {
   const PenukaranPoinScreen({super.key});
@@ -17,7 +23,9 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
   int poin = 0;
   double saldo = 0;
   bool _isLoading = true;
-  bool _isSubmitting = false; // Untuk loading saat proses tukar
+  bool _isSubmitting = false;
+  int?
+  _selectedPoinTukarForLoading; // Untuk melacak item mana yang sedang diproses
 
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
@@ -32,82 +40,91 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
   void initState() {
     super.initState();
     _initNotification();
-    _loadUserDataFromServer(); // Menggunakan fungsi yang mengambil data dari server
+    _loadUserDataFromServer();
+  }
+
+  @override
+  void dispose() {
+    // Tidak ada controller yang perlu di-dispose di sini
+    super.dispose();
   }
 
   Future<void> _initNotification() async {
     const AndroidInitializationSettings androidInitializationSettings =
         AndroidInitializationSettings(
           '@mipmap/ic_launcher',
-        ); // Sesuaikan dengan nama ikon Anda
+        ); // Pastikan ikon ada
     const InitializationSettings initializationSettings =
         InitializationSettings(android: androidInitializationSettings);
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    try {
+      await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    } catch (e) {
+      // Error initializing notifications
+    }
   }
 
   Future<void> _showSuccessNotification(
     int jumlahPoinDitukar,
     int saldoDidapatDariPenukaran,
   ) async {
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-          'poin_channel_id', // ID channel yang unik
-          'Penukaran Poin',
-          channelDescription:
-              'Notifikasi terkait aktivitas penukaran poin pengguna',
-          importance: Importance.high,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher', // Sesuaikan
-          color: Colors.green,
-        );
+    // final theme = Theme.of(context); // Tidak digunakan untuk warna notifikasi di sini
+
+    const AndroidNotificationDetails
+    androidDetails = AndroidNotificationDetails(
+      'poin_channel_id_success_v3', // ID channel unik (ganti jika ada perubahan signifikan)
+      'Penukaran Poin Sukses',
+      channelDescription: 'Notifikasi untuk penukaran poin yang berhasil',
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+      // color: theme.primaryColor, // Bisa ditambahkan jika ingin warna aksen notifikasi
+    );
     const NotificationDetails notificationDetails = NotificationDetails(
       android: androidDetails,
     );
-    await flutterLocalNotificationsPlugin.show(
-      DateTime.now().millisecondsSinceEpoch.remainder(
-        100000,
-      ), // ID notifikasi unik
-      'Penukaran Poin Berhasil!',
-      '$jumlahPoinDitukar poin berhasil ditukar menjadi ${currencyFormatter.format(saldoDidapatDariPenukaran)}.',
-      notificationDetails,
-    );
+    try {
+      await flutterLocalNotificationsPlugin.show(
+        DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        'Penukaran Poin Berhasil!',
+        '$jumlahPoinDitukar poin berhasil ditukar menjadi ${currencyFormatter.format(saldoDidapatDariPenukaran)}.',
+        notificationDetails,
+      );
+    } catch (e) {
+      // Error showing success notification
+    }
 
-    // Catat ke riwayat lokal
     final notificationData = {
-      'kegiatan': 'Penukaran Poin',
-      'jenis': 'Penukaran Berhasil', // Lebih spesifik
+      'kegiatan': 'Penukaran $jumlahPoinDitukar Poin ke Saldo',
+      'jenis': 'Penukaran Poin',
       'tanggal': DateTime.now().toIso8601String(),
-      'poin': jumlahPoinDitukar.toString(), // Poin yang berkurang
-      'saldo':
-          saldoDidapatDariPenukaran
-              .toString(), // Saldo yang bertambah dari penukaran ini
+      'poin': '-$jumlahPoinDitukar',
+      'saldo': '+${currencyFormatter.format(saldoDidapatDariPenukaran)}',
     };
-    await SharedPrefs.tambahRiwayat(notificationData);
+    try {
+      await SharedPrefs.tambahRiwayat(notificationData);
+    } catch (e) {
+      // Error saving history to SharedPrefs
+    }
   }
 
   Future<void> _loadUserDataFromServer() async {
     if (!mounted) return;
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
-    String? userId = SharedPrefs.getUserId();
+    String? userId = await SharedPrefs.getUserId();
     if (userId == null || userId.isEmpty) {
-      // Periksa juga jika userId kosong
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
         _customDialog(
+          context: context,
           title: "Error Akses Data",
           content:
               "User ID tidak ditemukan. Silakan login ulang untuk melanjutkan.",
           confirmText: "Login",
           icon: Icons.no_accounts_rounded,
-          iconColor: Colors.orange.shade600,
+          iconColor: Theme.of(context).colorScheme.error,
           onConfirm: () {
-            // Navigasi ke halaman login jika perlu
-            // Navigator.of(context).pushReplacementNamed('/login');
+            Navigator.of(context).popUntil((route) => route.isFirst);
           },
         );
       }
@@ -115,38 +132,49 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
     }
 
     try {
-      // Ambil poin dan saldo secara paralel dari server
       final results = await Future.wait([
         ApiService.getUserPoints(userId),
         ApiService.getUserBalance(userId),
       ]);
 
       if (mounted) {
+        final fetchedPoin =
+            results[0] is int
+                ? results[0] as int
+                : int.tryParse(results[0].toString()) ??
+                    poin; // Fallback ke nilai state jika parse gagal
+        final fetchedSaldo =
+            results[1] is num
+                ? (results[1] as num).toDouble()
+                : double.tryParse(results[1].toString()) ?? saldo; // Fallback
+
         setState(() {
-          poin = results[0] as int;
-          saldo = results[1] as double;
+          poin = fetchedPoin;
+          saldo = fetchedSaldo;
           _isLoading = false;
         });
-        // Simpan juga ke SharedPrefs agar data lokal terupdate
-        // Anda mungkin perlu mengambil username lagi jika ingin menyimpan data user lengkap
         String? username = await SharedPrefs.getUsername();
         await SharedPrefs.saveUserData(userId, username ?? 'User', saldo, poin);
       }
     } catch (e) {
+      // Error loading user data from server
       if (mounted) {
+        // Coba ambil dari SharedPreferences sebagai fallback jika server gagal
+        int localPoin = await SharedPrefs.getPoin();
+        double localSaldo = await SharedPrefs.getSaldo();
         setState(() {
           _isLoading = false;
-          // Jika gagal load dari server, coba load dari local sebagai fallback
-          poin = SharedPrefs.getPoin();
-          saldo = SharedPrefs.getSaldo();
+          poin = localPoin; // Gunakan data lokal
+          saldo = localSaldo; // Gunakan data lokal
         });
         _customDialog(
+          context: context,
           title: "Gagal Memuat Data",
           content:
-              "Tidak dapat mengambil data terbaru dari server: ${e.toString()}.\n\nSaat ini menampilkan data yang tersimpan secara lokal.",
+              "Tidak dapat mengambil data terbaru dari server. Menampilkan data yang tersimpan.",
           confirmText: "Mengerti",
           icon: Icons.signal_wifi_off_rounded,
-          iconColor: Colors.orange.shade600,
+          iconColor: Colors.orange.shade700,
         );
       }
     }
@@ -156,70 +184,100 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
     int jumlahPoinTukar,
     int nilaiSaldoDapatDariOpsi,
   ) async {
-    if (_isSubmitting) return; // Mencegah multiple submit
-
+    if (_isSubmitting)
+      return; // Mencegah multiple submit jika sudah ada yang diproses
     if (!mounted) return;
+
     setState(() {
       _isSubmitting = true;
+      _selectedPoinTukarForLoading =
+          jumlahPoinTukar; // Tandai item mana yang sedang diproses
     });
 
-    String? userId = SharedPrefs.getUserId();
+    String? userId = await SharedPrefs.getUserId();
     if (userId == null || userId.isEmpty) {
       _customDialog(
+        context: context,
         title: "Aksi Dibatalkan",
         content: "User ID tidak valid atau tidak ditemukan. Mohon login ulang.",
         confirmText: "OK",
         icon: Icons.error_outline_rounded,
-        iconColor: Colors.red.shade600,
+        iconColor: Theme.of(context).colorScheme.error,
       );
-      if (mounted) setState(() => _isSubmitting = false);
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+          _selectedPoinTukarForLoading = null;
+        });
+      }
       return;
     }
 
-    // Validasi poin sisi client (berdasarkan data state yang sudah di-load)
-    // Server akan melakukan validasi akhir juga.
     int poinSaatIni = poin;
-
     if (poinSaatIni < jumlahPoinTukar) {
       _customDialog(
+        context: context,
         title: "Poin Tidak Cukup",
         content:
-            "Poin Anda saat ini ($poinSaatIni) tidak mencukupi untuk melakukan penukaran $jumlahPoinTukar poin.",
+            "Poin Anda saat ini ($poinSaatIni) tidak mencukupi untuk penukaran $jumlahPoinTukar poin.",
         confirmText: "OK",
         icon: Icons.warning_amber_rounded,
         iconColor: Colors.orange.shade700,
       );
-      if (mounted) setState(() => _isSubmitting = false);
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+          _selectedPoinTukarForLoading = null;
+        });
+      }
       return;
     }
 
     bool? confirm = await _customDialog(
+      context: context,
       title: "Konfirmasi Penukaran",
       content:
           "Anda yakin ingin menukar $jumlahPoinTukar poin menjadi ${currencyFormatter.format(nilaiSaldoDapatDariOpsi)}?",
       confirmText: "Ya, Tukar",
       cancelText: "Batal",
       icon: Icons.help_outline_rounded,
-      iconColor: Colors.blue.shade600,
+      iconColor: Theme.of(context).primaryColor,
     );
 
     if (confirm == true) {
       try {
-        // Panggil API untuk tukar poin
         final responseData = await ApiService.tukarPoinRemote(
           userId,
           jumlahPoinTukar,
-          nilaiSaldoDapatDariOpsi, // Kirim nilai saldo yang sudah ditentukan dari UI
+          nilaiSaldoDapatDariOpsi,
         );
 
-        // Jika sukses, server akan mengembalikan data poin dan saldo terbaru
-        final int poinBaruServer = responseData['poin_tersisa'] as int;
+        final dynamic poinSisaRaw = responseData['poin_tersisa'];
+        final dynamic saldoSekarangRaw = responseData['saldo_sekarang'];
+        final dynamic saldoDidapatRaw = responseData['saldo_didapat'];
+
+        if (poinSisaRaw == null ||
+            saldoSekarangRaw == null ||
+            saldoDidapatRaw == null) {
+          throw Exception(
+            "Format respons API tidak sesuai atau data tidak lengkap.",
+          );
+        }
+
+        final int poinBaruServer =
+            poinSisaRaw is int
+                ? poinSisaRaw
+                : int.tryParse(poinSisaRaw.toString()) ??
+                    poin; // Fallback ke poin lama jika parse gagal
         final double saldoBaruServer =
-            (responseData['saldo_sekarang'] as num).toDouble();
-        // saldo_didapat dari server seharusnya sama dengan nilaiSaldoDapatDariOpsi
-        // atau ambil dari server untuk konfirmasi
+            saldoSekarangRaw is num
+                ? (saldoSekarangRaw).toDouble()
+                : double.tryParse(saldoSekarangRaw.toString()) ??
+                    saldo; // Fallback
         final int saldoDidapatKonfirmasiServer =
-            (responseData['saldo_didapat'] as num).toInt();
+            saldoDidapatRaw is num
+                ? (saldoDidapatRaw).toInt()
+                : int.tryParse(saldoDidapatRaw.toString()) ?? 0;
 
         if (mounted) {
           setState(() {
@@ -228,7 +286,6 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
           });
         }
 
-        // Simpan data terbaru ke SharedPrefs
         String? username = (await SharedPrefs.getUsername()) ?? 'User';
         await SharedPrefs.saveUserData(
           userId,
@@ -239,99 +296,138 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
 
         _showSuccessNotification(jumlahPoinTukar, saldoDidapatKonfirmasiServer);
         _customDialog(
+          context: context,
           title: "Penukaran Berhasil",
           content:
               "$jumlahPoinTukar poin telah berhasil ditukar menjadi ${currencyFormatter.format(saldoDidapatKonfirmasiServer)}.",
           confirmText: "Luar Biasa!",
           icon: Icons.check_circle_outline_rounded,
-          iconColor: Colors.green.shade600,
+          iconColor: Theme.of(context).primaryColor,
         );
       } catch (e) {
-        String errorMessage = e.toString();
+        String errorMessage =
+            "Gagal melakukan penukaran. Silakan coba lagi nanti.";
         if (e is TimeoutException) {
           errorMessage =
-              "Waktu tunggu koneksi ke server habis. Periksa koneksi internet Anda.";
-        } else if (e is Exception && e.toString().contains('Exception: ')) {
-          // Mengambil pesan error yang lebih bersih dari Exception
-          errorMessage = e.toString().replaceFirst('Exception: ', '');
+              "Waktu tunggu koneksi ke server habis. Periksa koneksi Anda.";
+        } else if (e is Exception) {
+          final msg = e.toString();
+          if (msg.contains("SocketException") ||
+              msg.contains("HandshakeException") ||
+              msg.contains("HttpException")) {
+            errorMessage =
+                "Tidak dapat terhubung ke server. Periksa koneksi internet Anda.";
+          } else if (msg.contains("FormatException")) {
+            errorMessage = "Terjadi kesalahan format data dari server.";
+          } else if (msg.startsWith("Exception: ")) {
+            errorMessage = msg.replaceFirst('Exception: ', '');
+          } else {
+            errorMessage = "Terjadi kesalahan tidak terduga: $msg";
+          }
         }
         _customDialog(
+          context: context,
           title: "Penukaran Gagal",
-          content: "Terjadi kesalahan saat proses penukaran: $errorMessage",
-          confirmText: "Coba Lagi Nanti",
+          content: errorMessage,
+          confirmText: "OK",
           icon: Icons.error_rounded,
-          iconColor: Colors.red.shade600,
+          iconColor: Theme.of(context).colorScheme.error,
         );
       } finally {
         if (mounted) {
           setState(() {
             _isSubmitting = false;
+            _selectedPoinTukarForLoading = null;
           });
         }
       }
     } else {
-      // Jika pengguna membatalkan konfirmasi
+      // Pengguna membatalkan konfirmasi
       if (mounted) {
         setState(() {
           _isSubmitting = false;
+          _selectedPoinTukarForLoading = null;
         });
       }
     }
   }
 
   Future<bool?> _customDialog({
+    required BuildContext context,
     required String title,
     required String content,
     required String confirmText,
     String? cancelText,
     IconData? icon,
     Color? iconColor,
-    VoidCallback? onConfirm, // Opsional callback untuk tombol konfirmasi
+    VoidCallback? onConfirm,
   }) {
+    final theme = Theme.of(context);
+    final customColors = theme.extension<CustomThemeColors>()!;
+
     return showDialog<bool>(
       context: context,
       barrierDismissible:
-          cancelText == null, // Tidak bisa dismiss jika hanya ada 1 tombol
+          cancelText == null && onConfirm == null, // Lebih fleksibel
       builder:
-          (context) => AlertDialog(
+          (dialogContext) => AlertDialog(
+            backgroundColor: theme.cardColor,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            icon: icon != null ? Icon(icon, color: iconColor, size: 48) : null,
+            icon:
+                icon != null
+                    ? Icon(
+                      icon,
+                      color: iconColor ?? theme.primaryColor,
+                      size: 48,
+                    )
+                    : null,
             title: Text(
               title,
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.bold,
                 fontSize: 20,
-                color:
-                    iconColor ?? Theme.of(context).textTheme.titleLarge?.color,
+                color: customColors.titleTextColor,
               ),
               textAlign: TextAlign.center,
             ),
             content: Text(
               content,
-              style: GoogleFonts.poppins(fontSize: 15),
+              style: GoogleFonts.poppins(
+                fontSize: 15.5,
+                color: customColors.bodyTextColor,
+                height: 1.4,
+              ),
               textAlign: TextAlign.center,
             ),
             actionsAlignment: MainAxisAlignment.center,
-            actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            actionsPadding: const EdgeInsets.fromLTRB(
+              20,
+              10,
+              20,
+              20,
+            ), // Padding disesuaikan
             actions: <Widget>[
               if (cancelText != null)
                 Expanded(
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      side: BorderSide(color: Colors.grey.shade400),
+                      side: BorderSide(
+                        color: theme.dividerColor.withOpacity(0.8),
+                      ),
                     ),
-                    onPressed: () => Navigator.pop(context, false),
+                    onPressed: () => Navigator.pop(dialogContext, false),
                     child: Text(
                       cancelText,
                       style: GoogleFonts.poppins(
-                        color: Colors.grey.shade700,
+                        color: customColors.secondaryTextColor,
                         fontWeight: FontWeight.w500,
+                        fontSize: 15,
                       ),
                     ),
                   ),
@@ -340,22 +436,30 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
               Expanded(
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: iconColor ?? Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    backgroundColor: iconColor ?? theme.primaryColor,
+                    foregroundColor:
+                        Colors.white, // Teks putih untuk kontras yang baik
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                     ),
+                    elevation: 2,
                   ),
                   onPressed: () {
-                    Navigator.pop(context, true);
+                    Navigator.pop(
+                      dialogContext,
+                      true,
+                    ); // Selalu pop dengan true jika tombol konfirmasi ditekan
                     if (onConfirm != null) {
                       onConfirm();
                     }
                   },
                   child: Text(
                     confirmText,
-                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ),
@@ -365,36 +469,67 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
   }
 
   Widget _buildTukarOpsiItem({
+    required BuildContext context,
     required int poinTukar,
     required int saldoTukar,
     required Color itemAccentColor,
-    required Color itemBackgroundColor,
   }) {
+    final theme = Theme.of(context);
+    final customColors = theme.extension<CustomThemeColors>()!;
+    final bool isDarkMode = theme.brightness == Brightness.dark;
     bool canTukar = poin >= poinTukar;
+
+    Color cardBgColor;
+    Color titleColor;
+    Color subtitleColor;
+    Color borderColor;
+    double elevation;
+
+    if (canTukar) {
+      cardBgColor =
+          isDarkMode
+              ? itemAccentColor.withOpacity(0.25)
+              : itemAccentColor.withOpacity(0.1);
+      titleColor =
+          customColors.titleTextColor ??
+          (isDarkMode
+              ? Colors.white.withOpacity(0.95)
+              : Colors.black.withOpacity(0.87));
+      subtitleColor = itemAccentColor;
+      borderColor = itemAccentColor.withOpacity(0.7);
+      elevation = 3.5;
+    } else {
+      cardBgColor = theme.cardColor.withOpacity(isDarkMode ? 0.2 : 0.7);
+      titleColor = theme.hintColor.withOpacity(0.9);
+      subtitleColor = theme.hintColor.withOpacity(0.8);
+      borderColor = theme.dividerColor.withOpacity(0.6);
+      elevation = 1.0;
+    }
+
+    bool isCurrentlySubmittingThisItem =
+        _isSubmitting && _selectedPoinTukarForLoading == poinTukar;
+
     return Card(
-      elevation: canTukar ? 3.0 : 1.0,
-      margin: const EdgeInsets.symmetric(vertical: 7.0),
+      elevation: elevation,
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color:
-              canTukar
-                  ? itemAccentColor.withOpacity(0.7)
-                  : Colors.grey.shade300,
-          width: 1.2,
-        ),
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: borderColor, width: canTukar ? 1.5 : 1.0),
       ),
-      color: canTukar ? itemBackgroundColor : Colors.grey.shade100,
+      color: cardBgColor,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap:
-            canTukar && !_isSubmitting
-                ? () => _handleTukarPoin(poinTukar, saldoTukar)
+            canTukar &&
+                    !_isSubmitting // Hanya bisa tap jika bisa tukar DAN tidak sedang ada proses submit lain
+                ? () {
+                  _handleTukarPoin(poinTukar, saldoTukar);
+                }
                 : null,
-        splashColor: itemAccentColor.withOpacity(0.2),
-        highlightColor: itemAccentColor.withOpacity(0.1),
+        splashColor: itemAccentColor.withOpacity(0.25),
+        highlightColor: itemAccentColor.withOpacity(0.15),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 18.0),
           child: Row(
             children: [
               Expanded(
@@ -404,38 +539,31 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
                     Text(
                       "Tukar $poinTukar Poin",
                       style: GoogleFonts.poppins(
-                        fontSize: 16,
+                        fontSize: 17,
                         fontWeight: FontWeight.w600,
-                        color:
-                            canTukar
-                                ? (Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white70
-                                    : Colors.black.withOpacity(0.8))
-                                : Colors.grey.shade600,
+                        color: titleColor,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 5),
                     Text(
                       "Dapatkan ${currencyFormatter.format(saldoTukar)}",
                       style: GoogleFonts.poppins(
-                        fontSize: 15,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color:
-                            canTukar ? itemAccentColor : Colors.grey.shade500,
+                        color: subtitleColor,
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 10),
-              if (_isSubmitting && canTukar)
+              if (isCurrentlySubmittingThisItem)
                 Container(
-                  width: 18,
-                  height: 18,
-                  margin: const EdgeInsets.only(right: 2),
+                  width: 22,
+                  height: 22,
+                  margin: const EdgeInsets.only(right: 4),
                   child: CircularProgressIndicator(
-                    strokeWidth: 2.0,
+                    strokeWidth: 2.8,
                     valueColor: AlwaysStoppedAnimation<Color>(itemAccentColor),
                   ),
                 )
@@ -443,13 +571,13 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
                 Icon(
                   Icons.arrow_forward_ios_rounded,
                   color: itemAccentColor,
-                  size: 18,
+                  size: 20,
                 )
-              else if (!canTukar)
+              else
                 Icon(
                   Icons.lock_outline_rounded,
-                  color: Colors.grey.shade400,
-                  size: 20,
+                  color: theme.hintColor.withOpacity(0.7),
+                  size: 22,
                 ),
             ],
           ),
@@ -460,72 +588,63 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final customColors = theme.extension<CustomThemeColors>()!;
+    // ignore: unused_local_variable
+    final bool isDarkMode = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: Text(
-          "Penukaran Poin",
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.green.shade800,
-        foregroundColor: Colors.white,
-        elevation: 2,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
-        ),
-      ),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(title: Text("Penukaran Poin")),
       body:
           _isLoading
               ? Center(
-                child: CircularProgressIndicator(color: Colors.green.shade600),
+                child: CircularProgressIndicator(color: theme.primaryColor),
               )
               : RefreshIndicator(
-                onRefresh:
-                    _loadUserDataFromServer, // Menggunakan fungsi yang memuat dari server
-                color: Colors.green.shade600,
+                onRefresh: _loadUserDataFromServer,
+                color: theme.primaryColor,
+                backgroundColor: theme.cardColor,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildInfoCard(),
+                      _buildInfoCard(context),
                       const SizedBox(height: 30),
                       Text(
                         "Pilihan Penukaran",
                         style: GoogleFonts.poppins(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: customColors.titleTextColor,
                         ),
                       ),
                       const SizedBox(height: 15),
                       _buildTukarOpsiItem(
+                        context: context,
                         poinTukar: 10,
                         saldoTukar: 1000,
                         itemAccentColor: Colors.orange.shade700,
-                        itemBackgroundColor: Colors.orange.shade50,
                       ),
                       _buildTukarOpsiItem(
+                        context: context,
                         poinTukar: 50,
                         saldoTukar: 5500,
                         itemAccentColor: Colors.red.shade600,
-                        itemBackgroundColor: Colors.red.shade50,
                       ),
                       _buildTukarOpsiItem(
+                        context: context,
                         poinTukar: 100,
                         saldoTukar: 12000,
                         itemAccentColor: Colors.purple.shade600,
-                        itemBackgroundColor: Colors.purple.shade50,
                       ),
                       _buildTukarOpsiItem(
+                        context: context,
                         poinTukar: 200,
                         saldoTukar: 25000,
                         itemAccentColor: Colors.blue.shade700,
-                        itemBackgroundColor: Colors.blue.shade50,
                       ),
                       const SizedBox(height: 20),
                     ],
@@ -535,18 +654,31 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
     );
   }
 
-  Widget _buildInfoCard() {
+  Widget _buildInfoCard(BuildContext context) {
+    final theme = Theme.of(context);
+    final customColors = theme.extension<CustomThemeColors>()!;
+    final bool isDarkMode = theme.brightness == Brightness.dark;
+
     return Card(
-      elevation: 6,
+      elevation: 5,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      shadowColor: Colors.green.withOpacity(0.3),
+      shadowColor: theme.primaryColor.withOpacity(isDarkMode ? 0.4 : 0.25),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(
-            colors: [Colors.green.shade600, Colors.green.shade400],
+            colors:
+                isDarkMode
+                    ? [
+                      theme.primaryColorDark.withOpacity(0.9),
+                      theme.primaryColor.withOpacity(0.95),
+                    ]
+                    : [
+                      theme.primaryColor,
+                      theme.primaryColorLight.withOpacity(0.9),
+                    ], // Sedikit penyesuaian opacity
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -559,9 +691,9 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
                 Icon(
                   Icons.stars_rounded,
                   color: Colors.yellow.shade600,
-                  size: 28,
+                  size: 30,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Text(
                   "Poin Anda Saat Ini",
                   style: GoogleFonts.poppins(
@@ -572,27 +704,34 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               NumberFormat.decimalPattern('id_ID').format(poin),
               style: GoogleFonts.poppins(
-                fontSize: 40,
+                fontSize: 42,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
+                shadows: [
+                  Shadow(
+                    blurRadius: 1,
+                    color: Colors.black.withOpacity(0.25),
+                    offset: Offset(1, 1.5),
+                  ),
+                ], // Shadow lebih halus
               ),
             ),
-            const SizedBox(height: 20),
-            Divider(color: Colors.white.withOpacity(0.5), thickness: 1),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+            Divider(color: Colors.white.withOpacity(0.35), thickness: 0.8),
+            const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                   Icons.account_balance_wallet_rounded,
                   color: Colors.lightBlue.shade100,
-                  size: 28,
+                  size: 30,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Text(
                   "Total Saldo Anda",
                   style: GoogleFonts.poppins(
@@ -603,13 +742,20 @@ class _PenukaranPoinScreenState extends State<PenukaranPoinScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               currencyFormatter.format(saldo),
               style: GoogleFonts.poppins(
-                fontSize: 32,
+                fontSize: 34,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
+                shadows: [
+                  Shadow(
+                    blurRadius: 1,
+                    color: Colors.black.withOpacity(0.25),
+                    offset: Offset(1, 1.5),
+                  ),
+                ],
               ),
             ),
           ],
