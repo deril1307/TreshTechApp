@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
-import 'login_screen.dart';
+import '../../services/api_service.dart';
+import '../loginAndRegist/login_screen.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String email;

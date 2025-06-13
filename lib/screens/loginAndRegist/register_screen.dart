@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tubes_mobile/services/api_service.dart';
-import 'package:tubes_mobile/screens/login_screen.dart';
-import '../main.dart';
+import 'package:tubes_mobile/screens/loginAndRegist/login_screen.dart';
+import '../../main.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});

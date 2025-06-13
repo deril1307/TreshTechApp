@@ -2,19 +2,19 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:tubes_mobile/screens/info_screen.dart';
+// import 'package:tubes_mobile/screens/info_screen.dart'; // DIHAPUS KARENA TIDAK DIGUNAKAN LAGI
 import 'dart:async';
 import 'package:tubes_mobile/screens/kategori_sampah_screen.dart';
 import 'package:tubes_mobile/screens/leaderboard_screen.dart';
 import 'package:tubes_mobile/screens/penukaran_poin_screen.dart';
 import 'package:tubes_mobile/screens/setor_sampah_screen.dart';
 import 'package:tubes_mobile/screens/tarik_saldo_screen.dart';
-import 'package:tubes_mobile/screens/profile_screen.dart';
+import 'package:tubes_mobile/screens/profile/profile_screen.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
 import 'package:tubes_mobile/services/api_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:tubes_mobile/screens/riwayat_screen.dart';
+import 'package:tubes_mobile/screens/riwayat/riwayat_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tubes_mobile/utils/connectivity_checker.dart';
 
@@ -38,17 +38,6 @@ class _HomeScreenState extends State<HomeScreen> {
   String? profilePicture;
   late Timer _timer;
 
-  // HAPUS DEFINISI WARNA HARDCODE DI SINI, KITA AKAN AMBIL DARI THEME
-  // final Color primaryColor = const Color.fromARGB(255, 7, 168, 13);
-  // final Color primaryLightColor = const Color.fromARGB(255, 66, 199, 73);
-  // final Color primaryDarkColor = const Color.fromARGB(255, 4, 105, 9);
-  // final Color scaffoldBgColor = const Color(0xFFF0F4F8);
-  // final Color cardColor = Colors.white;
-  // final Color titleTextColor = Colors.green.shade900;
-  // final Color bodyTextColor = Colors.black.withOpacity(0.75);
-  // final Color secondaryTextColor = Colors.grey.shade600;
-  // final Color cardShadowColor = Colors.black.withOpacity(0.06);
-
   @override
   void initState() {
     super.initState();
@@ -65,8 +54,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadUser() async {
     if (!mounted) return;
 
-    // Optimasi: Hanya set isLoading true jika benar-benar perlu loading awal
-    // dan belum ada data pengguna yang dimuat sebelumnya.
     if (userId == null && username == null) {
       if (mounted) setState(() => isLoading = true);
     }
@@ -89,7 +76,6 @@ class _HomeScreenState extends State<HomeScreen> {
         saldo = savedSaldo;
         poin = savedPoin;
         profilePicture = savedProfilePicture;
-        // isLoading akan di set false setelah fetch API atau jika offline
       });
     }
 
@@ -112,7 +98,6 @@ class _HomeScreenState extends State<HomeScreen> {
             isLoading = false;
           });
         }
-        // Pastikan userId dan username tidak null sebelum menyimpan
         if (userId != null && username != null) {
           await SharedPrefs.saveUserData(userId!, username!, saldo, poin);
           await SharedPrefs.saveProfilePicture(profilePicture ?? "");
@@ -121,22 +106,20 @@ class _HomeScreenState extends State<HomeScreen> {
         print("Error fetching API data in HomeScreen: $e");
         if (mounted) {
           setState(() {
-            isLoading = false; // Tetap set isLoading false jika error
+            isLoading = false;
           });
         }
       }
     } else {
       if (mounted) {
         setState(() {
-          isLoading =
-              false; // Set isLoading false jika offline dan data dari SharedPreferences sudah dimuat
+          isLoading = false;
         });
       }
     }
   }
 
   Future<void> _refreshData() async {
-    // Tidak perlu setState isLoading = true di sini karena RefreshIndicator sudah punya UI sendiri
     await _loadUser();
   }
 
@@ -148,7 +131,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Ambil warna dari Theme
     final theme = Theme.of(context);
     // ignore: unused_local_variable
     final customColors = theme.extension<CustomThemeColors>()!;
@@ -158,17 +140,9 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(
-          "TrashTechBank",
-          // Style sudah diatur oleh AppBarTheme di main.dart
-        ),
-        // backgroundColor dan iconTheme juga dari AppBarTheme
+        title: Text("TrashTechBank"),
         leading: IconButton(
-          icon: const Icon(
-            Icons.notifications_outlined,
-            // color: Colors.white, // Diambil dari AppBarTheme.iconTheme
-            size: 26,
-          ),
+          icon: const Icon(Icons.notifications_outlined, size: 26),
           onPressed: () {
             Navigator.push(
               context,
@@ -177,11 +151,9 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
         actions: [
-          // Tombol Ganti Tema
           IconButton(
             icon: Icon(
               isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-              // color: Colors.white // Diambil dari AppBarTheme.iconTheme
             ),
             tooltip: isDarkMode ? "Mode Terang" : "Mode Gelap",
             onPressed: () {
@@ -194,8 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.only(right: 10.0),
             child: IconButton(
               icon: Hero(
-                tag:
-                    'profileAvatar', // Pastikan tag ini unik jika Hero digunakan di tempat lain
+                tag: 'profileAvatar',
                 child: CircleAvatar(
                   radius: 18,
                   backgroundColor:
@@ -211,11 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               as ImageProvider,
                   child:
                       (profilePicture == null || profilePicture!.isEmpty)
-                          ? Icon(
-                            Icons.person,
-                            color: theme.hintColor, // Gunakan warna dari tema
-                            size: 20,
-                          )
+                          ? Icon(Icons.person, color: theme.hintColor, size: 20)
                           : null,
                 ),
               ),
@@ -288,9 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
             style: GoogleFonts.poppins(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color:
-                  Colors
-                      .white, // Teks di header biasanya tetap putih untuk kontras
+              color: Colors.white,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -325,9 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(
-              0.2,
-            ), // Bayangan bisa tetap gelap untuk efek
+            color: Colors.black.withOpacity(0.2),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -371,7 +334,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Icon(
                 FontAwesomeIcons.solidStar,
-                color: Colors.yellowAccent.shade700, // Bintang tetap kuning
+                color: Colors.yellowAccent.shade700,
                 size: 20,
               ),
               const SizedBox(width: 10),
@@ -392,7 +355,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildMenuGrid(BuildContext context) {
     final theme = Theme.of(context);
-    // final customColors = theme.extension<CustomThemeColors>()!; // Tidak digunakan di sini
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -400,13 +362,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 4.0, bottom: 16),
-            child: Text(
-              "Menu Layanan",
-              style:
-                  theme
-                      .textTheme
-                      .headlineSmall, // Menggunakan style dari TextTheme
-            ),
+            child: Text("Menu Layanan", style: theme.textTheme.headlineSmall),
           ),
           GridView.count(
             crossAxisCount: 4,
@@ -420,7 +376,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 context: context,
                 label: "Tukar Poin",
                 icon: FontAwesomeIcons.gifts,
-                color: Colors.redAccent.shade400, // Warna ikon spesifik
+                color: Colors.redAccent.shade400,
                 onTap: () {
                   Navigator.push(
                     context,
@@ -432,7 +388,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 context: context,
                 label: "Tarik Saldo",
                 icon: FontAwesomeIcons.moneyBillWave,
-                color: theme.primaryColor, // Gunakan primary color dari tema
+                color: theme.primaryColor,
                 onTap: () {
                   Navigator.push(
                     context,
@@ -444,7 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 context: context,
                 label: "Kategori",
                 icon: FontAwesomeIcons.shapes,
-                color: Colors.purple.shade400, // Warna ikon spesifik
+                color: Colors.purple.shade400,
                 onTap: () {
                   Navigator.push(
                     context,
@@ -458,7 +414,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 context: context,
                 label: "Setor",
                 icon: FontAwesomeIcons.boxOpen,
-                color: Colors.orange.shade700, // Warna ikon spesifik
+                color: Colors.orange.shade700,
                 onTap: () {
                   Navigator.push(
                     context,
@@ -470,21 +426,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               _buildMenuItem(
                 context: context,
-                label: "Info",
-                icon: FontAwesomeIcons.circleInfo,
-                color: Colors.blue.shade600, // Warna ikon spesifik
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => InfoScreen()),
-                  );
-                },
-              ),
-              _buildMenuItem(
-                context: context,
                 label: "Peringkat",
                 icon: FontAwesomeIcons.trophy,
-                color: Colors.amber.shade600, // Warna ikon spesifik
+                color: Colors.amber.shade600,
                 onTap: () {
                   Navigator.push(
                     context,
@@ -494,34 +438,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
-              _buildMenuItem(
-                context: context,
-                label: "Riwayat",
-                icon: FontAwesomeIcons.history,
-                color: Colors.teal.shade500, // Warna ikon spesifik
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => RiwayatScreen()),
-                  );
-                },
-              ),
-              _buildMenuItem(
-                context: context,
-                label: "Lainnya",
-                icon: FontAwesomeIcons.ellipsisH,
-                color: Colors.grey.shade600, // Warna ikon spesifik
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Menu Lainnya diklik!',
-                        style: TextStyle(color: theme.colorScheme.onPrimary),
-                      ),
-                    ),
-                  );
-                },
-              ),
+              //  MENU ITEM RIWAYAT, INFO, DAN LAINNYA DIHAPUS DARI SINI
             ],
           ),
         ],
@@ -533,7 +450,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required BuildContext context,
     required String label,
     required IconData icon,
-    required Color color, // Warna spesifik untuk ikon dan highlight
+    required Color color,
     required VoidCallback onTap,
   }) {
     final theme = Theme.of(context);
@@ -558,25 +475,16 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(
-                    isDarkMode ? 0.25 : 0.15,
-                  ), // Background ikon
+                  color: color.withOpacity(isDarkMode ? 0.25 : 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: FaIcon(
-                  icon,
-                  color: color,
-                  size: 26,
-                ), // Ikon dengan warna spesifik
+                child: FaIcon(icon, color: color, size: 26),
               ),
               const SizedBox(height: 10),
               Text(
                 label,
                 textAlign: TextAlign.center,
-                style:
-                    theme
-                        .textTheme
-                        .labelLarge, // Menggunakan style dari TextTheme
+                style: theme.textTheme.labelLarge,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -607,12 +515,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     Color _getColorForActivity(String? kegiatan) {
-      // Warna ikon spesifik untuk aktivitas
       if (kegiatan == null) return Colors.grey.shade400;
       String lowerKegiatan = kegiatan.toLowerCase();
       if (lowerKegiatan.contains("setor")) return Colors.orange.shade700;
-      if (lowerKegiatan.contains("tarik saldo"))
-        return theme.primaryColorDark; // Bisa dari tema
+      if (lowerKegiatan.contains("tarik saldo")) return theme.primaryColorDark;
       if (lowerKegiatan.contains("penukaran poin"))
         return Colors.redAccent.shade400;
       return Colors.grey.shade600;
@@ -653,7 +559,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: theme.primaryColor, // Warna primary dari tema
+                      color: theme.primaryColor,
                     ),
                   ),
                 ),

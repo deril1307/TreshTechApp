@@ -1,18 +1,14 @@
 // ignore_for_file: unused_import, unnecessary_null_comparison, unnecessary_cast, deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tubes_mobile/services/api_service.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
-import 'package:tubes_mobile/screens/login_screen.dart';
-import 'package:tubes_mobile/screens/edit_profile_screen.dart';
-import 'package:tubes_mobile/screens/faq_screen.dart';
+import 'package:tubes_mobile/screens/loginAndRegist/login_screen.dart';
+import 'package:tubes_mobile/screens/profile/edit_profile_screen.dart';
+import 'package:tubes_mobile/screens/profile/faq_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-
-// Import MyApp dan CustomThemeColors dari main.dart
-// Sesuaikan path '../main.dart' jika struktur folder Anda berbeda
-import '../main.dart'; // Asumsi main.dart ada di direktori parent
+import '../../main.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -29,11 +25,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int poin = 0;
   String? profilePicture;
   bool isLoading = true;
-
-  // HAPUS SEMUA DEFINISI WARNA HARDCODE DI SINI
-  // final Color appBarColor = const Color.fromARGB(255, 38, 198, 38);
-  // final Color primaryAccentColor = const Color.fromARGB(255, 27, 154, 27);
-  // ... dan seterusnya
 
   final List<Map<String, String>> _faqData = [
     {
@@ -71,24 +62,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUserData() async {
     if (!mounted) return;
-    // Set isLoading true hanya jika data pengguna belum ada
     if (username == null) {
       setState(() => isLoading = true);
     }
-
     String? userId = await SharedPrefs.getUserId();
-
     if (userId == null) {
       if (mounted) setState(() => isLoading = false);
       return;
     }
-
     var savedProfile = await SharedPrefs.getUserProfile();
     var savedBalance = await SharedPrefs.getUserBalance();
     var savedPoints = await SharedPrefs.getUserPoints();
     bool localDataAvailable =
         savedProfile != null && savedBalance != null && savedPoints != null;
-
     if (localDataAvailable) {
       if (mounted) {
         setState(() {
@@ -98,9 +84,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           profilePicture = savedProfile["profile_picture"];
           saldo = double.tryParse(savedBalance.toString()) ?? 0.00;
           poin = int.tryParse(savedPoints.toString()) ?? 0;
-          // Jika data lokal ada, kita bisa set isLoading false di sini
-          // kecuali jika kita selalu ingin fetch dari API jika ada koneksi.
-          // Untuk saat ini, biarkan isLoading dihandle setelah pengecekan koneksi.
         });
       }
     }
@@ -203,8 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      Colors.red.shade700, // Warna spesifik untuk logout
+                  backgroundColor: Colors.red.shade700,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -696,15 +678,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildActionButton({
     required BuildContext context,
     required String label,
-    required Color
-    color, // Warna background tombol, bisa spesifik (merah untuk logout)
+    required Color color,
     required VoidCallback onPressed,
     bool isSmall = false,
     IconData? icon,
     bool isFullWidth = false,
   }) {
-    // final theme = Theme.of(context); // Tidak selalu dibutuhkan jika warna tombol spesifik
-
     return SizedBox(
       height: isSmall ? 40 : 50,
       width: isFullWidth ? double.infinity : (isSmall ? null : double.infinity),
@@ -719,7 +698,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         label: Text(
           label,
           style: GoogleFonts.poppins(
-            // Warna teks diambil dari foregroundColor
             fontSize: isSmall ? 14 : 16,
             fontWeight: FontWeight.w600,
           ),
@@ -840,8 +818,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 : FontWeight.w600,
                         color:
                             isPlaceholderValue
-                                ? theme
-                                    .hintColor // Warna untuk placeholder
+                                ? theme.hintColor
                                 : customColors.titleTextColor,
                         fontStyle:
                             isPlaceholderValue

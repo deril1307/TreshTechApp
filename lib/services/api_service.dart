@@ -2,13 +2,15 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart';
 // ignore: unused_import
+import 'package:tubes_mobile/screens/riwayat/riwayat_penukaran_merchandise_screen.dart';
+// ignore: unused_import
 import 'package:tubes_mobile/utils/shared_prefs.dart';
 import 'dart:async';
 // ignore: unused_import
-import 'package:flutter/foundation.dart'; // untuk kReleaseMode
+import 'package:flutter/foundation.dart';
 
 class ApiService {
-  static const String baseUrl = "http://10.0.2.2:5000";
+  static const String baseUrl = "https://web-apb.vercel.app";
   // static const String baseUrl = "https://e374-114-10-145-44.ngrok-free.app";
 
   static Future<List<dynamic>> getKategoriSampah() async {
@@ -39,8 +41,8 @@ class ApiService {
         'user_id': userId,
         'waste_id': kategoriId,
         'weight': beratGram,
-        'latitude': latitude, // Kirim latitude
-        'longitude': longitude, // Kirim longitude
+        'latitude': latitude,
+        'longitude': longitude,
       }),
     );
 
@@ -49,16 +51,13 @@ class ApiService {
     } else {
       print('Error setorSampah API: ${response.statusCode}');
       print('Response Body setorSampah: ${response.body}');
-      // Coba parse error message dari backend jika ada
       try {
         final errorData = json.decode(response.body);
         if (errorData is Map<String, dynamic> &&
             errorData.containsKey('error')) {
           throw Exception('Gagal setor sampah: ${errorData['error']}');
         }
-      } catch (e) {
-        // Gagal parse atau format tidak sesuai, fallback ke pesan umum
-      }
+      } catch (e) {}
       throw Exception('Gagal setor sampah (Status: ${response.statusCode})');
     }
   }
@@ -318,8 +317,91 @@ class ApiService {
             const Duration(seconds: 15),
           ), // Timeout khusus untuk operasi POST ini
       'melakukan penukaran poin',
-      (data) =>
-          data as Map<String, dynamic>, // Server diharapkan mengembalikan Map
+      (data) => data as Map<String, dynamic>,
+    );
+  }
+
+  // Mengambil daftar semua merchandise yang tersedia untuk penukaran poin.
+  static Future<List<Map<String, dynamic>>> getMerchandise() async {
+    final url = Uri.parse('$baseUrl/merchandise');
+    print('ApiService: Memanggil GET $url');
+
+    try {
+      final response = await http
+          .get(
+            url,
+            headers: {'Content-Type': 'application/json; charset=UTF-8'},
+          )
+          .timeout(const Duration(seconds: 15));
+      print('Status Code: ${response.statusCode}');
+      print('Response Body Mentah: ${response.body}');
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        if (data != null && data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+        throw Exception('Format data merchandise tidak valid dari server.');
+      } else {
+        throw Exception(
+          'Gagal mengambil data: ${data["message"] ?? response.body}',
+        );
+      }
+    } catch (e) {
+      print('Error di getMerchandise: $e');
+      throw Exception(
+        'Tidak dapat terhubung ke server untuk mengambil merchandise.',
+      );
+    }
+  }
+
+  // fungsi untuk menukar merchandise
+  static Future<Map<String, dynamic>> tukarPoinDenganMerchandise({
+    required String userId,
+    required int merchandiseId,
+    required int poinDibutuhkan,
+  }) async {
+    final url = Uri.parse('$baseUrl/tukar-merchandise');
+    print(
+      'ApiService: Memanggil POST $url dengan body: {user_id: $userId, merchandise_id: $merchandiseId, poin_dibutuhkan: $poinDibutuhkan}',
+    );
+    return _handleRequest(
+      http.post(
+        url,
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+        body: jsonEncode({
+          'user_id': userId,
+          'merchandise_id': merchandiseId,
+          'poin_dibutuhkan': poinDibutuhkan,
+        }),
+      ),
+      'melakukan penukaran merchandise',
+      (data) {
+        if (data != null && data is Map<String, dynamic>) {
+          return data;
+        }
+        throw Exception('Format respons penukaran merchandise tidak valid.');
+      },
+    );
+  }
+
+  static Future<List<Map<String, dynamic>>> getRiwayatPenukaran(
+    String userId,
+  ) async {
+    final url = Uri.parse('$baseUrl/users/$userId/merchandise-redemptions');
+    print('ApiService: Memanggil GET $url');
+
+    return _handleRequest(
+      http.get(
+        url,
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      ),
+      'mengambil riwayat penukaran merchandise',
+      (data) {
+        if (data != null && data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+        throw Exception('Format data riwayat tidak valid dari server.');
+      },
     );
   }
 }

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tubes_mobile/screens/home_screen.dart';
-import 'package:tubes_mobile/screens/login_screen.dart';
+import 'package:tubes_mobile/screens/loginAndRegist/login_screen.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
 
 // Tema Aplikasi

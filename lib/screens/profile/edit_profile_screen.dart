@@ -10,9 +10,9 @@ import 'package:dio/dio.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'profile_screen.dart';
-import '../main.dart';
+import '../../main.dart';
 
-const String baseUrl = "http://10.0.2.2:5000";
+const String baseUrl = "https://web-apb.vercel.app";
 // const String baseUrl = "https://e374-114-10-145-44.ngrok-free.app";
 
 class EditProfilePage extends StatefulWidget {
@@ -56,9 +56,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
           });
         }
         if (!isOffline && userId != 0) {
-          // Jika kembali online dan userId ada, coba muat ulang data profil
-          // Ini bisa opsional, tergantung apakah Anda ingin otomatis refresh
-          // _getProfileData();
+          // Jika kembali online dan userId ada, muat ulang data profil
+          _getProfileData();
         }
       }
     });
@@ -87,7 +86,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Future<void> _loadUserIdAndProfile() async {
     if (mounted) setState(() => _isSaving = true); // Tampilkan loading awal
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? storedUserId = prefs.getString("user_id"); // Pastikan key konsisten
+    String? storedUserId = prefs.getString("user_id");
     if (storedUserId != null) {
       if (mounted) {
         userId = int.tryParse(storedUserId) ?? 0;
@@ -103,8 +102,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           "User ID tidak ditemukan. Silakan login kembali.",
           Colors.red,
         );
-        // Pertimbangkan untuk navigasi kembali jika user ID tidak ada
-        // Navigator.of(context).pop();
       }
     }
     if (mounted) setState(() => _isSaving = false); // Sembunyikan loading awal
@@ -117,15 +114,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
         _showSnackbar(
           "Anda sedang offline. Menampilkan data tersimpan jika ada.",
           Theme.of(context).colorScheme.secondary,
-        ); // Gunakan warna tema
+        );
       }
-      // TODO: Implementasi memuat data profil dari SharedPreferences jika diperlukan
       return;
     }
-
-    // Tidak perlu setState _isSaving true di sini jika sudah dihandle _loadUserIdAndProfile
-    // atau jika ini dipanggil terpisah (misal saat refresh)
-    // if (mounted) setState(() => _isSaving = true);
 
     try {
       var response = await Dio().get("$baseUrl/get-profile/$userId");
@@ -158,18 +150,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
         );
       }
       print("Error getProfileData (unknown): $e");
-    } finally {
-      // if (mounted) setState(() => _isSaving = false);
     }
   }
 
   Future<void> _pickImage(BuildContext dialogContext) async {
     final ImagePicker picker = ImagePicker();
-    final theme = Theme.of(dialogContext); // Gunakan context dari dialog
+    final theme = Theme.of(dialogContext);
     final customColors = theme.extension<CustomThemeColors>()!;
 
     final pickedFileSource = await showDialog<ImageSource>(
-      context: dialogContext, // Gunakan context yang di-pass untuk dialog
+      context: dialogContext,
       builder:
           (context) => AlertDialog(
             backgroundColor: theme.cardColor,
@@ -210,7 +200,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       final XFile? file = await picker.pickImage(
         source: pickedFileSource,
         imageQuality: 70,
-      ); // Tambah imageQuality
+      );
       if (file != null) {
         if (mounted) {
           _image.value = File(file.path);
@@ -221,6 +211,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
+  /// === FUNGSI YANG DIMODIFIKASI ===
   Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) {
       _showSnackbar("Harap perbaiki data yang salah.", Colors.orange);
@@ -267,14 +258,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
           "Profil berhasil diperbarui!",
           Theme.of(context).primaryColor,
         );
-        await Future.delayed(
-          const Duration(milliseconds: 1500),
-        ); // Beri waktu snackbar terlihat
+
+        // Langsung kembali ke ProfileScreen dan hapus halaman ini dari stack
         if (mounted) {
-          Navigator.pop(
-            context,
-            true,
-          ); // Kirim true untuk menandakan ada perubahan ke ProfileScreen
+          // Mengirim 'true' untuk memberitahu ProfileScreen agar me-refresh data
+          Navigator.pop(context, true);
         }
       } else {
         _showSnackbar(
@@ -293,7 +281,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           e.type == DioExceptionType.receiveTimeout) {
         errorMessage = "Koneksi timeout. Silakan coba lagi.";
       } else if (e.error is SocketException) {
-        // Lebih spesifik untuk SocketException
         errorMessage =
             "Tidak dapat terhubung ke server. Periksa koneksi internet Anda.";
       }
@@ -306,17 +293,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
       );
       print("Update profile error (unknown): $e");
     } finally {
+      // Pastikan loading berhenti meskipun terjadi error
       if (mounted) setState(() => _isSaving = false);
     }
   }
 
+  /// === AKHIR FUNGSI YANG DIMODIFIKASI ===
+
   void _showSnackbar(String message, Color color) {
     if (!mounted) return;
-    // ignore: unused_local_variable
-    final theme = Theme.of(context);
     final bool isError = color == Colors.red || color == Colors.orange;
-    final SnackBarBehavior behavior = SnackBarBehavior.floating;
-    final EdgeInsets margin = const EdgeInsets.fromLTRB(15, 5, 15, 10);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -339,9 +325,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ],
         ),
         backgroundColor: color,
-        behavior: behavior,
+        behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: margin,
+        margin: const EdgeInsets.fromLTRB(15, 5, 15, 10),
         duration: const Duration(seconds: 3),
       ),
     );
@@ -359,20 +345,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
           "Edit Profil",
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
         ),
-        // backgroundColor dan iconTheme diambil dari AppBarTheme di main.dart
       ),
       body: FutureBuilder<void>(
-        future: _profileFuture, // Future untuk memuat data awal
+        future: _profileFuture,
         builder: (context, snapshot) {
-          // Tampilkan loading utama hanya saat _profileFuture berjalan DAN controller kosong
           if (snapshot.connectionState == ConnectionState.waiting &&
-              fullNameController.text.isEmpty &&
-              !_isSaving) {
+              fullNameController.text.isEmpty) {
             return Center(
               child: CircularProgressIndicator(color: theme.primaryColor),
             );
           }
-          // Jika ada error saat memuat data awal (misal user ID tidak ada)
           if (snapshot.hasError) {
             return Center(
               child: Text(
@@ -382,7 +364,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
             );
           }
 
-          // Selalu tampilkan form setelah loading awal selesai atau jika sudah ada data di controller
           return Stack(
             children: [
               SingleChildScrollView(
@@ -390,8 +371,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 child: Form(
                   key: _formKey,
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.stretch, // Agar tombol full width
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (isOffline) ...[
                         Container(
@@ -402,7 +382,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           decoration: BoxDecoration(
                             color: theme.colorScheme.errorContainer.withOpacity(
                               0.2,
-                            ), // Warna dari tema error
+                            ),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: theme.colorScheme.error.withOpacity(0.5),
@@ -449,19 +429,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                       backgroundImage =
                                           CachedNetworkImageProvider(url);
                                     } else {
-                                      // Jika tidak ada gambar sama sekali, gunakan ikon placeholder
                                       placeholderChild = Icon(
                                         Icons.person_outline_rounded,
                                         size: 60,
                                         color: theme.hintColor.withOpacity(0.6),
                                       );
-                                      // backgroundImage tetap null agar CircleAvatar menggunakan backgroundColor
                                     }
                                     return CircleAvatar(
-                                      radius: 65, // Sedikit lebih besar
-                                      backgroundColor:
-                                          theme
-                                              .cardColor, // Warna background jika tidak ada gambar
+                                      radius: 65,
+                                      backgroundColor: theme.cardColor,
                                       backgroundImage: backgroundImage,
                                       child: placeholderChild,
                                     );
@@ -470,7 +446,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               },
                             ),
                             Material(
-                              // Untuk efek ripple pada tombol kamera
                               color: theme.primaryColor,
                               shape: const CircleBorder(),
                               elevation: 2.0,
@@ -490,7 +465,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 30), // Spasi lebih banyak
+                      const SizedBox(height: 30),
                       _buildValidatedTextField(
                         context: context,
                         controller: fullNameController,
@@ -539,62 +514,39 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         },
                       ),
                       const SizedBox(height: 30),
+
+                      /// === WIDGET YANG DIMODIFIKASI ===
                       ElevatedButton.icon(
-                        icon:
-                            _isSaving
-                                ? const SizedBox.shrink() // Jangan tampilkan ikon jika sedang loading
-                                : const Icon(Icons.save_outlined, size: 20),
-                        label:
-                            _isSaving
-                                ? SizedBox(
-                                  height: 22,
-                                  width: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      theme
-                                          .colorScheme
-                                          .onPrimary, // Warna loading indicator pada tombol
-                                    ),
-                                  ),
-                                )
-                                : Text(
-                                  "Simpan Perubahan",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                        icon: const Icon(Icons.save_outlined, size: 20),
+                        label: Text(
+                          "Simpan Perubahan",
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         onPressed: _isSaving ? null : _updateProfile,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: theme.primaryColor,
-                          foregroundColor:
-                              theme
-                                  .colorScheme
-                                  .onPrimary, // Warna teks dan ikon pada tombol
+                          foregroundColor: theme.colorScheme.onPrimary,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              12,
-                            ), // Sesuaikan radius
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 16,
-                          ), // Padding lebih besar
-                          minimumSize: const Size(
-                            double.infinity,
-                            52,
-                          ), // Tinggi tombol
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          minimumSize: const Size(double.infinity, 52),
                           elevation: 3,
+                          disabledBackgroundColor: theme.primaryColor
+                              .withOpacity(0.7),
                         ),
                       ),
+
+                      /// === AKHIR WIDGET YANG DIMODIFIKASI ===
                     ],
                   ),
                 ),
               ),
-              // Overlay loading saat proses _updateProfile atau _loadUserData sedang berjalan (setelah loading awal)
-              if (_isSaving &&
-                  !(snapshot.connectionState == ConnectionState.waiting &&
-                      fullNameController.text.isEmpty))
+              // Overlay loading saat menyimpan
+              if (_isSaving)
                 Container(
                   color: Colors.black.withOpacity(0.3),
                   child: Center(
@@ -621,9 +573,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final customColors = theme.extension<CustomThemeColors>()!;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: 8.0,
-      ), // Kurangi padding vertikal
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextFormField(
         controller: controller,
         validator: validator,
@@ -647,9 +597,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   )
                   : null,
           filled: true,
-          fillColor: theme.cardColor, // Background field lebih netral
+          fillColor: theme.cardColor,
           border: OutlineInputBorder(
-            // Border default
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: theme.dividerColor, width: 1.0),
           ),

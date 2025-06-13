@@ -2,12 +2,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:tubes_mobile/screens/register_screen.dart';
-import 'package:tubes_mobile/screens/requestreset_screen.dart';
+import 'package:tubes_mobile/screens/loginAndRegist/register_screen.dart';
+import 'package:tubes_mobile/screens/resetPassword/requestreset_screen.dart';
 import 'package:tubes_mobile/services/api_service.dart';
 import 'package:tubes_mobile/screens/home_screen.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
-import '../main.dart';
+import '../../main.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
