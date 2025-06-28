@@ -11,7 +11,7 @@ import 'package:flutter/foundation.dart';
 
 class ApiService {
   static const String baseUrl = "https://web-apb.vercel.app";
-  // static const String baseUrl = "https://e374-114-10-145-44.ngrok-free.app";
+  // static const String baseUrl = "http://10.0.2.2:5000";
 
   static Future<List<dynamic>> getKategoriSampah() async {
     try {
@@ -186,71 +186,67 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  static Future<dynamic> _handleResponse(
-    http.Response response,
-    String operation,
-  ) async {
+  static dynamic _handleResponse(http.Response response, String operation) {
     print(
       'ApiService ($operation): Status ${response.statusCode}, Body: ${response.body}',
     );
-    Map<String, dynamic>? responseBody;
-    try {
-      if (response.body.isNotEmpty) {
-        responseBody = jsonDecode(response.body);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      try {
+        if (response.body.isNotEmpty) {
+          return jsonDecode(response.body);
+        } else {
+          return null;
+        }
+      } catch (e) {
+        print('ApiService ($operation): Failed to decode success response: $e');
+        throw Exception('Gagal memproses respons server yang valid.');
       }
-    } catch (e) {
-      print(
-        'ApiService ($operation): Failed to decode JSON response body: ${response.body}',
-      );
-      throw Exception(
-        'Gagal memproses respons server (Status: ${response.statusCode})',
-      );
-    }
-
-    if (response.statusCode == 200) {
-      if (responseBody == null && operation.contains("get")) {
-        // Untuk GET yang mungkin mengembalikan nilai non-map
-        throw Exception('Data tidak valid dari server untuk $operation.');
-      }
-      return responseBody ??
-          {}; // Kembalikan map kosong jika body kosong tapi status 200 (jarang terjadi untuk API kita)
-    } else if (response.statusCode == 404) {
-      throw Exception(
-        'Sumber daya tidak ditemukan di server untuk $operation.',
-      );
     } else {
+      String errorMessage = response.body;
+      try {
+        final errorJson = jsonDecode(response.body);
+        if (errorJson is Map<String, dynamic> &&
+            errorJson.containsKey('error')) {
+          errorMessage = errorJson['error'];
+        }
+      } catch (e) {
+        // Biarkan errorMessage sebagai body mentah jika bukan JSON
+      }
+
+      if (response.statusCode == 404) {
+        throw Exception('Sumber daya tidak ditemukan untuk $operation.');
+      }
+
       throw Exception(
-        'Gagal $operation: ${responseBody?['error'] ?? response.reasonPhrase} (Status: ${response.statusCode})',
+        'Gagal $operation: $errorMessage (Status: ${response.statusCode})',
       );
     }
   }
 
+  // Ganti juga fungsi _handleRequest LAMA Anda dengan yang BARU ini
   static Future<T> _handleRequest<T>(
     Future<http.Response> requestFuture,
     String operation,
     T Function(dynamic data) parser,
   ) async {
     try {
-      final response = await requestFuture.timeout(
-        const Duration(seconds: 10),
-      ); // Default timeout 10 detik
-      final dynamic decodedData = await _handleResponse(response, operation);
+      final response = await requestFuture.timeout(const Duration(seconds: 15));
+      final dynamic decodedData = _handleResponse(response, operation);
       return parser(decodedData);
     } on TimeoutException catch (_) {
       print('ApiService ($operation): Timeout');
       throw Exception(
-        'Waktu tunggu koneksi habis untuk $operation. Periksa koneksi Anda.',
+        'Waktu tunggu koneksi habis. Periksa koneksi internet Anda.',
       );
     } catch (e) {
+      // Tangkap error dari _handleResponse atau exception lainnya
       print('ApiService ($operation): Exception: $e');
-      if (e is Exception &&
-          (e.toString().contains('SocketException') ||
-              e.toString().contains('Network is unreachable'))) {
+      if (e is Exception && e.toString().contains('SocketException')) {
         throw Exception(
-          'Tidak dapat terhubung ke server. Periksa koneksi internet atau alamat server.',
+          'Tidak dapat terhubung ke server. Pastikan server berjalan dan alamat IP benar.',
         );
       }
-      rethrow; // Lempar kembali exception yang sudah diproses atau exception asli
+      rethrow;
     }
   }
 
@@ -384,24 +380,72 @@ class ApiService {
     );
   }
 
+  // fungsi tiwayat penukaran merchandise
   static Future<List<Map<String, dynamic>>> getRiwayatPenukaran(
     String userId,
   ) async {
     final url = Uri.parse('$baseUrl/users/$userId/merchandise-redemptions');
     print('ApiService: Memanggil GET $url');
-
     return _handleRequest(
       http.get(
         url,
-        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+        // GANTI header ini
+        headers: {'Accept': 'application/json'},
       ),
       'mengambil riwayat penukaran merchandise',
       (data) {
+        print('🔍 Data dari API: $data');
+
         if (data != null && data is List) {
           return List<Map<String, dynamic>>.from(data);
         }
+
         throw Exception('Format data riwayat tidak valid dari server.');
       },
     );
+  }
+
+  // fungsi mengambil riwayat pickup history
+  static Future<List<dynamic>> fetchUserPickupHistory(String userId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/users/$userId/pickup-history'),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Gagal memuat riwayat penjemputan');
+    }
+  }
+
+  // fungsi delete pickup history
+  static Future<void> deletePickupHistory(int requestId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/api/admin/pickup-requests/$requestId'),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Gagal menghapus riwayat penjemputan.');
+    }
+  }
+
+  // fungsi update pickup history
+  static Future<void> updatePickupStatus(
+    int requestId,
+    String newStatus,
+  ) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/api/admin/pickup-requests/$requestId/status'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'status': newStatus}),
+    );
+
+    if (response.statusCode != 200) {
+      try {
+        final error = json.decode(response.body);
+        throw Exception('Gagal mengubah status: ${error['error']}');
+      } catch (e) {
+        throw Exception('Gagal mengubah status penjemputan.');
+      }
+    }
   }
 }

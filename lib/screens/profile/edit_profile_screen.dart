@@ -13,7 +13,7 @@ import 'profile_screen.dart';
 import '../../main.dart';
 
 const String baseUrl = "https://web-apb.vercel.app";
-// const String baseUrl = "https://e374-114-10-145-44.ngrok-free.app";
+// const String baseUrl = "http://10.0.2.2:5000";
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -42,21 +42,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
   void initState() {
     super.initState();
     _profileFuture = _loadUserIdAndProfile();
-    _checkConnectivity(); // Cek konektivitas awal
-    // Dengarkan perubahan konektivitas
+    _checkConnectivity();
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
       List<ConnectivityResult> result,
     ) {
       if (mounted) {
         final newOfflineStatus = result.contains(ConnectivityResult.none);
         if (isOffline != newOfflineStatus) {
-          // Hanya setState jika status berubah
           setState(() {
             isOffline = newOfflineStatus;
           });
         }
         if (!isOffline && userId != 0) {
-          // Jika kembali online dan userId ada, muat ulang data profil
           _getProfileData();
         }
       }

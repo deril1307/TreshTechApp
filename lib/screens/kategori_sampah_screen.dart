@@ -9,10 +9,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart'; // Pastikan ini adalah utilitas Shared Preferences Anda
 import 'package:tubes_mobile/services/api_service.dart';
 import 'kategori_detail_screen.dart';
-
 // Import MyApp dan CustomThemeColors dari main.dart
-// Sesuaikan path '../main.dart' jika struktur folder Anda berbeda
-import '../main.dart'; // Asumsi main.dart ada di direktori parent
+import '../main.dart';
 
 class KategoriSampahScreen extends StatefulWidget {
   const KategoriSampahScreen({super.key});
@@ -26,12 +24,6 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
   bool isLoading = true;
   Timer? _refreshTimer;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
-
-  // HAPUS DEFINISI WARNA HARDCODE DI SINI
-  // final Color primaryColor = const Color.fromARGB(255, 7, 168, 13);
-  // final Color lightGreenBackground = Colors.green.shade50;
-  // final Color cardShadowColor = Colors.black.withOpacity(0.08);
-
   @override
   void initState() {
     super.initState();
@@ -40,7 +32,6 @@ class _KategoriSampahScreenState extends State<KategoriSampahScreen> {
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
       List<ConnectivityResult> result,
     ) {
-      // Jika koneksi berubah, coba fetch data lagi jika belum loading
       if (mounted &&
           !isLoading &&
           (result.contains(ConnectivityResult.mobile) ||

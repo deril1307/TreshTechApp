@@ -4,154 +4,166 @@ import 'package:google_fonts/google_fonts.dart';
 
 class KategoriDetailScreen extends StatelessWidget {
   final dynamic kategori;
-
-  // Definisikan warna utama untuk konsistensi
   final Color primaryColor = const Color.fromARGB(255, 7, 168, 13);
-  final Color lightScreenBackground = const Color(
-    0xFFF0F4F8,
-  ); // Warna background netral
-  final Color darkTextColor = Colors.black87; // Ini adalah const
-  final Color lightTextColor = Colors.black54; // Ini adalah const
-  // PERBAIKAN: Menggunakan Color.fromARGB untuk membuat nilai konstan
-  final Color cardShadowColor = const Color.fromARGB(
-    20,
-    0,
-    0,
-    0,
-  ); // sebelumnya: Colors.black.withOpacity(0.08)
-
+  final Color lightScreenBackground = const Color(0xFFF0F4F8);
+  final Color darkTextColor = Colors.black87;
+  final Color lightTextColor = Colors.black54;
+  final Color cardShadowColor = const Color.fromARGB(20, 0, 0, 0);
   const KategoriDetailScreen({super.key, required this.kategori});
 
   @override
   Widget build(BuildContext context) {
     final String? imageUrl = kategori['cloudinary_url'];
-    final String defaultImage =
-        "assets/images/default_image.png"; // Pastikan path ini benar
+    final String defaultImage = "assets/images/default_image.png";
 
     return Scaffold(
       backgroundColor: lightScreenBackground,
+
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
           kategori['name'] ?? 'Detail Kategori',
           style: GoogleFonts.poppins(
             fontWeight: FontWeight.bold,
             color: Colors.white,
+            shadows: [
+              const Shadow(
+                blurRadius: 2.0,
+                color: Colors.black45,
+                offset: Offset(1.0, 1.0),
+              ),
+            ],
           ),
         ),
-        backgroundColor: primaryColor,
-        elevation: 1.0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: Colors.transparent, // Transparan
+        elevation: 0,
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+          shadows: [Shadow(blurRadius: 2.0, color: Colors.black45)],
+        ),
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.zero,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (imageUrl != null && imageUrl.isNotEmpty)
-              Hero(
-                tag: imageUrl,
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  width: MediaQuery.of(context).size.width,
-                  height: 280,
-                  fit: BoxFit.cover,
-                  placeholder:
-                      (context, url) => Container(
-                        width: MediaQuery.of(context).size.width,
-                        height: 280,
-                        color: Colors.grey.shade300,
-                        child: Center(
-                          child: CircularProgressIndicator(color: primaryColor),
-                        ),
-                      ),
-                  errorWidget:
-                      (context, url, error) => Image.asset(
-                        defaultImage,
-                        width: MediaQuery.of(context).size.width,
-                        height: 280,
-                        fit: BoxFit.cover,
-                      ),
-                ),
-              )
-            else
-              Image.asset(
-                defaultImage,
-                width: MediaQuery.of(context).size.width,
-                height: 280,
-                fit: BoxFit.cover,
-              ),
+            _buildImageHeader(context, imageUrl, defaultImage),
+
             Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    kategori['name'] ?? 'Nama Kategori',
-                    style: GoogleFonts.poppins(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: darkTextColor,
-                    ),
+                  // --- KARTU INFORMASI POIN ---
+                  _buildInfoCard(
+                    icon: Icons.star_rounded,
+                    iconColor: Colors.orange.shade600,
+                    title: "Poin Dihargai",
+                    content:
+                        "${kategori['point_per_unit']} Poin / ${kategori['unit']}",
+                    isContentBold: true,
                   ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: primaryColor.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: primaryColor.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.star_rounded,
-                          color: Colors.orange.shade600,
-                          size: 26,
-                        ),
-                        const SizedBox(width: 10),
-                        Flexible(
-                          child: Text(
-                            "Poin: ${kategori['point_per_unit']} / ${kategori['unit']}",
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: primaryColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(
-                    height: 30,
-                    thickness: 1,
-                    color: Colors.black12,
-                  ),
-                  Text(
-                    "Deskripsi Kategori",
-                    style: GoogleFonts.poppins(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: darkTextColor,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    kategori['description'] ??
+                  const SizedBox(height: 16),
+
+                  // --- KARTU DESKRIPSI ---
+                  _buildInfoCard(
+                    icon: Icons.info_outline_rounded,
+                    iconColor: Colors.blue.shade600,
+                    title: "Deskripsi Kategori",
+                    content:
+                        kategori['description'] ??
                         'Tidak ada deskripsi untuk kategori ini.',
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      color: lightTextColor,
-                      height: 1.6,
-                    ),
-                    textAlign: TextAlign.start,
                   ),
-                  const SizedBox(height: 24),
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget untuk Header Gambar yang lebih modern
+  Widget _buildImageHeader(
+    BuildContext context,
+    String? imageUrl,
+    String defaultImage,
+  ) {
+    return Hero(
+      tag:
+          kategori['id'] ??
+          UniqueKey().toString(), // Gunakan ID atau key unik untuk tag
+      child: Container(
+        height: 300,
+        width: MediaQuery.of(context).size.width,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade300,
+          image: DecorationImage(
+            image:
+                (imageUrl != null && imageUrl.isNotEmpty
+                        ? CachedNetworkImageProvider(imageUrl)
+                        : AssetImage(defaultImage))
+                    as ImageProvider,
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.transparent,
+                Colors.black.withOpacity(0.2),
+                Colors.black.withOpacity(0.6),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Widget template untuk Kartu Informasi
+  Widget _buildInfoCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String content,
+    bool isContentBold = false,
+  }) {
+    return Card(
+      elevation: 2,
+      shadowColor: cardShadowColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: iconColor, size: 24),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: darkTextColor,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            Text(
+              content,
+              style: GoogleFonts.poppins(
+                fontSize: 15,
+                fontWeight: isContentBold ? FontWeight.bold : FontWeight.normal,
+                color: isContentBold ? primaryColor : lightTextColor,
+                height: 1.6,
               ),
             ),
           ],

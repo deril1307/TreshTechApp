@@ -1,8 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:tubes_mobile/services/api_service.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'dart:convert';
+import 'package:intl/intl.dart';
+
+class RiwayatItem {
+  final String judul;
+  final String jenis;
+  final DateTime tanggal;
+  final Map<String, String> detail;
+  final bool isLocal;
+  final int? originalIndex;
+  final int? serverId;
+  final String? status;
+
+  RiwayatItem({
+    required this.judul,
+    required this.jenis,
+    required this.tanggal,
+    required this.detail,
+    this.isLocal = false,
+    this.originalIndex,
+    this.serverId,
+    this.status,
+  });
+}
 
 class RiwayatScreen extends StatefulWidget {
   @override
@@ -10,119 +32,162 @@ class RiwayatScreen extends StatefulWidget {
 }
 
 class _RiwayatScreenState extends State<RiwayatScreen> {
-  List<Map<String, String>> riwayat = [];
-  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+  List<RiwayatItem> _riwayatGabungan = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    loadRiwayat();
-    _initializeNotifications();
+    _loadAllHistory();
   }
 
-  // Inisialisasi notifikasi lokal
-  void _initializeNotifications() {
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+  Future<void> _loadAllHistory() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+    String? userId = await SharedPrefs.getUserId();
+    if (userId == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+    List<RiwayatItem> combinedList = [];
+    final List<Map<String, String>> localHistory = SharedPrefs.getRiwayat();
+    for (int i = 0; i < localHistory.length; i++) {
+      var item = localHistory[i];
+      combinedList.add(
+        RiwayatItem(
+          judul: item['kegiatan'] ?? 'Aktivitas',
+          jenis: item['jenis'] ?? 'Lainnya',
+          tanggal: DateTime.tryParse(item['tanggal'] ?? '') ?? DateTime.now(),
+          detail: {'Poin': item['poin'] ?? '-', 'Saldo': item['saldo'] ?? '-'},
+          isLocal: true,
+          originalIndex: i,
+        ),
+      );
+    }
+    try {
+      final List<dynamic> pickupHistory =
+          await ApiService.fetchUserPickupHistory(userId);
+      for (var item in pickupHistory) {
+        combinedList.add(
+          RiwayatItem(
+            judul: "Permintaan Jemput",
+            jenis: "Jemput Sampah",
+            tanggal:
+                DateTime.tryParse(item['request_date'] ?? '') ?? DateTime.now(),
+            detail: {
+              'ID Permintaan': item['id'].toString(),
+              'Jenis Sampah': item['waste_category_name'] ?? '-',
+              'Estimasi Berat': "${item['estimated_weight_g']} g",
+              'Alamat': item['address'] ?? '-',
+              'Status': item['status']?.replaceAll('_', ' ') ?? '-',
+            },
+            isLocal: false,
+            serverId: item['id'],
+            status: item['status'],
+          ),
+        );
+      }
+    } catch (e) {
+      print("Error memuat riwayat jemput: $e");
+    }
+    combinedList.sort((a, b) => b.tanggal.compareTo(a.tanggal));
+    if (mounted) {
+      setState(() {
+        _riwayatGabungan = combinedList;
+        _isLoading = false;
+      });
+    }
+  }
 
-    final InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid);
+  IconData getIconByJenis(String jenis) {
+    String lowerJenis = jenis.toLowerCase();
+    if (lowerJenis.contains('jemput sampah')) return Icons.local_shipping;
+    return Icons.history;
+  }
 
-    flutterLocalNotificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
-        final payload = response.payload;
-        if (payload != null && payload.isNotEmpty) {
-          _handleNotificationSelected(payload);
-        }
+  Future<void> _showConfirmationDialog({
+    required String title,
+    required String content,
+    required String confirmText,
+    required VoidCallback onConfirm,
+  }) async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text(title, style: GoogleFonts.poppins()),
+          content: Text(content, style: GoogleFonts.poppins()),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Batal', style: GoogleFonts.poppins()),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
+            TextButton(
+              child: Text(
+                confirmText,
+                style: GoogleFonts.poppins(color: Colors.red),
+              ),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                onConfirm();
+              },
+            ),
+          ],
+        );
       },
     );
   }
 
-  // Fungsi saat notifikasi dipilih
-  void _handleNotificationSelected(String payload) async {
-    final Map<String, String> decodedPayload = Map<String, String>.from(
-      jsonDecode(payload),
-    );
-
-    final newItem = {
-      'kegiatan': decodedPayload['kegiatan'] ?? '',
-      'jenis': decodedPayload['jenis'] ?? '',
-      'tanggal': DateTime.now().toString().substring(0, 16),
-      'poin': decodedPayload['poin'] ?? '',
-      'saldo': decodedPayload['saldo'] ?? '',
-    };
-
-    await SharedPrefs.tambahRiwayat(newItem); // Menambah riwayat ke SharedPrefs
-    loadRiwayat(); // Memuat kembali riwayat
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "Riwayat baru ditambahkan: ${decodedPayload['kegiatan']}",
-        ),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  // Menampilkan riwayat dari SharedPreferences
-  void loadRiwayat() {
-    final data = SharedPrefs.getRiwayat();
-    setState(() {
-      riwayat = data;
-    });
-  }
-
-  // Menentukan ikon sesuai jenis aktivitas
-  IconData getIconByJenis(String jenis) {
-    switch (jenis) {
-      case 'Sampah Metal':
-        return Icons.auto_awesome;
-      case 'Sampah Non-Metal':
-        return Icons.recycling;
-      case 'Penukaran':
-      case 'Tarik Saldo':
-        return Icons.attach_money;
-      case 'Top Up':
-        return Icons.add_card;
-      case 'Withdraw':
-        return Icons.remove_circle;
-      case 'Notifikasi Aktivitas':
-        return Icons.notifications_active;
-      default:
-        return Icons.history;
+  void _handleAction(RiwayatItem item) {
+    if (item.isLocal) {
+      // Aksi untuk riwayat lokal -> Hapus dari HP
+      _showConfirmationDialog(
+        title: 'Hapus Riwayat Lokal',
+        content: 'Anda yakin ingin menghapus riwayat ini dari HP Anda?',
+        confirmText: 'Hapus',
+        onConfirm: () async {
+          await SharedPrefs.hapusRiwayatByIndex(item.originalIndex!);
+          _loadAllHistory();
+        },
+      );
+    } else {
+      // Aksi untuk riwayat dari server
+      if (item.status == 'SELESAI') {
+        // Aksi untuk status Selesai -> Hapus Permanen
+        _showConfirmationDialog(
+          title: 'Hapus Riwayat Permanen',
+          content:
+              'PERINGATAN: Anda akan menghapus riwayat ini secara permanen dari server. Tindakan ini tidak dapat dibatalkan.',
+          confirmText: 'Ya, Hapus Permanen',
+          onConfirm: () async {
+            try {
+              await ApiService.deletePickupHistory(item.serverId!);
+            } catch (e) {
+              // handle error
+            }
+            _loadAllHistory();
+          },
+        );
+      } else {
+        // Aksi untuk status lain (Menunggu, Diproses) -> Batalkan
+        _showConfirmationDialog(
+          title: 'Batalkan Penjemputan',
+          content: 'Anda yakin ingin membatalkan permintaan penjemputan ini?',
+          confirmText: 'Ya, Batalkan',
+          onConfirm: () async {
+            try {
+              await ApiService.updatePickupStatus(item.serverId!, 'DIBATALKAN');
+            } catch (e) {
+              // handle error
+            }
+            _loadAllHistory();
+          },
+        );
+      }
     }
   }
 
-  // Fungsi untuk menghapus riwayat pada index tertentu
-  void _deleteHistory(int index) async {
-    await SharedPrefs.hapusRiwayatByIndex(
-      index,
-    ); // Menghapus riwayat di SharedPrefs
-    loadRiwayat(); // Memuat kembali riwayat setelah penghapusan
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Riwayat berhasil dihapus."),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  // Fungsi untuk menghapus semua riwayat
-  void _clearAllHistory() async {
-    await SharedPrefs.hapusSemuaRiwayat(); // Menghapus semua riwayat di SharedPrefs
-    loadRiwayat(); // Memuat kembali riwayat setelah penghapusan
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Semua riwayat berhasil dihapus."),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
+  void _clearAllHistory() {}
 
   @override
   Widget build(BuildContext context) {
@@ -132,145 +197,153 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
         backgroundColor: const Color.fromARGB(255, 7, 168, 13),
         actions: [
           IconButton(
-            icon: Icon(Icons.delete),
-            tooltip: 'Hapus Semua Riwayat',
-            onPressed:
-                _clearAllHistory, // Menambahkan fungsi untuk menghapus semua riwayat
+            icon: Icon(Icons.delete_sweep),
+            tooltip: 'Hapus Semua Riwayat Lokal',
+            onPressed: _clearAllHistory,
           ),
         ],
       ),
       body:
-          riwayat.isEmpty
+          _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : _riwayatGabungan.isEmpty
               ? Center(
                 child: Text(
                   "Belum ada riwayat.",
                   style: GoogleFonts.poppins(fontSize: 16),
                 ),
               )
-              : Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 20,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Riwayat Terbaru",
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green.shade800,
+              : RefreshIndicator(
+                onRefresh: _loadAllHistory,
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _riwayatGabungan.length,
+                  itemBuilder: (context, index) {
+                    final item = _riwayatGabungan[index];
+                    final formattedDate = DateFormat(
+                      'dd MMM kk:mm',
+                      'id_ID',
+                    ).format(item.tanggal);
+
+                    // DIUBAH TOTAL: Logika untuk menentukan tombol aksi
+                    Widget? actionButton;
+                    IconData actionIcon = Icons.help; // Default icon
+                    String actionTooltip = '';
+                    Color actionColor = Colors.grey;
+
+                    if (item.isLocal) {
+                      actionIcon = Icons.delete_outline;
+                      actionTooltip = 'Hapus Riwayat Lokal';
+                      actionColor = Colors.red.shade400;
+                      actionButton = IconButton(
+                        icon: Icon(actionIcon, color: actionColor),
+                        tooltip: actionTooltip,
+                        onPressed: () => _handleAction(item),
+                      );
+                    } else {
+                      bool isCancellable =
+                          item.status == 'MENUNGGU_KONFIRMASI' ||
+                          item.status == 'DIPROSES';
+                      bool isCompleted = item.status == 'SELESAI';
+
+                      if (isCancellable) {
+                        actionIcon = Icons.cancel_outlined;
+                        actionTooltip = 'Batalkan Penjemputan';
+                        actionColor = Colors.orange.shade800;
+                        actionButton = IconButton(
+                          icon: Icon(actionIcon, color: actionColor),
+                          tooltip: actionTooltip,
+                          onPressed: () => _handleAction(item),
+                        );
+                      } else if (isCompleted) {
+                        actionIcon = Icons.delete_forever_outlined;
+                        actionTooltip = 'Hapus Riwayat Permanen';
+                        actionColor = Colors.red.shade700;
+                        actionButton = IconButton(
+                          icon: Icon(actionIcon, color: actionColor),
+                          tooltip: actionTooltip,
+                          onPressed: () => _handleAction(item),
+                        );
+                      }
+                    }
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
                       ),
-                    ),
-                    SizedBox(height: 15),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: riwayat.length,
-                        itemBuilder: (context, index) {
-                          final item = riwayat[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                            elevation: 3,
-                            child: ExpansionTile(
-                              leading: CircleAvatar(
-                                backgroundColor: Colors.green.shade100,
-                                child: Icon(
-                                  getIconByJenis(item['jenis'] ?? ''),
-                                  color: Colors.green.shade800,
-                                ),
-                              ),
-                              title: Text(
-                                item['kegiatan'] ?? '-',
-                                style: GoogleFonts.poppins(fontSize: 16),
-                              ),
-                              subtitle: Text(
-                                item['tanggal'] ?? '',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 13,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              children: <Widget>[
-                                ListTile(
-                                  title: Text(
-                                    'Detail: ${item['kegiatan']}',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      color: Colors.green,
-                                    ),
+                      elevation: 3,
+                      child: ExpansionTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.green.shade100,
+                          child: Icon(
+                            getIconByJenis(item.jenis),
+                            color: Colors.green.shade800,
+                          ),
+                        ),
+                        title: Text(
+                          item.judul,
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          formattedDate,
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        children: <Widget>[
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            child: Column(
+                              children: [
+                                ...item.detail.entries
+                                    .map(
+                                      (entry) => Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 8.0,
+                                        ),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              "${entry.key}: ",
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Expanded(
+                                              child: Text(
+                                                entry.value,
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                if (actionButton != null)
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: actionButton,
                                   ),
-                                  subtitle: Text(
-                                    'Tanggal: ${item['tanggal']}\nPoin: ${item['poin']}\nSaldo: ${item['saldo']}',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                  trailing: IconButton(
-                                    icon: Icon(Icons.delete),
-                                    onPressed: () => _deleteHistory(index),
-                                  ),
-                                ),
                               ],
                             ),
-                          );
-                        },
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
     );
-  }
-
-  // Fungsi untuk menampilkan notifikasi
-  // ignore: unused_element
-  Future<void> _showSuccessNotification(int jumlahPoin, int saldoTukar) async {
-    // Membuat data riwayat sebagai map
-    Map<String, String> dataRiwayat = {
-      "kegiatan": "Penukaran Poin",
-      "jenis": "Penukaran",
-      "tanggal": DateTime.now().toString(),
-      "poin": jumlahPoin.toString(),
-      "saldo": saldoTukar.toString(),
-    };
-
-    // Mengubah ke JSON string untuk payload
-    String payload = jsonEncode(dataRiwayat);
-
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-          'channel_id',
-          'channel_name',
-          channelDescription: 'Deskripsi channel notifikasi',
-          importance: Importance.max,
-          priority: Priority.high,
-          ticker: 'ticker',
-        );
-
-    const NotificationDetails notificationDetails = NotificationDetails(
-      android: androidDetails,
-    );
-
-    // Menampilkan notifikasi
-    await flutterLocalNotificationsPlugin.show(
-      0,
-      'Aktivitas Baru: Penukaran Poin',
-      'Anda berhasil menukar $jumlahPoin poin menjadi Rp$saldoTukar.',
-      notificationDetails,
-      payload: payload,
-    );
-  }
-
-  Future<void> onSelectNotification(String? payload) async {
-    if (payload != null) {
-      final Map<String, dynamic> data = jsonDecode(payload);
-      print("Notifikasi dibuka dengan data:");
-      print(data);
-    }
   }
 }

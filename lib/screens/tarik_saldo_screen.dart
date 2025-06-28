@@ -25,12 +25,9 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
     '1.000.000',
   ];
   double saldo = 0.0;
-  bool _isLoading = false; // Untuk loading indicator pada tombol
-
+  bool _isLoading = false;
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
-
-  // --- LOGIKA BACKEND (TIDAK DIUBAH KECUALI UNTUK MOUNTED CHECKS) ---
   Future<void> _initNotifications() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -181,7 +178,7 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
             'tanggal': DateTime.now().toIso8601String(),
             'saldo': "Rp $formattedAmount",
           });
-          _showCustomSnackbar(successMessage, context: context); // Pass context
+          _showCustomSnackbar(successMessage, context: context);
         } else {
           _showCustomSnackbar(
             result['message'] ?? 'Gagal melakukan penarikan saldo.',
@@ -210,16 +207,13 @@ class _TarikSaldoScreenState extends State<TarikSaldoScreen> {
     required BuildContext context,
   }) {
     if (!mounted) return;
-    final theme = Theme.of(context); // Ambil theme dari context yang di-pass
+    final theme = Theme.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           message,
           style: GoogleFonts.poppins(
-            color:
-                isError
-                    ? theme.colorScheme.onError
-                    : Colors.white, // Warna teks disesuaikan
+            color: isError ? theme.colorScheme.onError : Colors.white,
             fontWeight: FontWeight.w500,
           ),
         ),

@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'package:tubes_mobile/screens/info_screen.dart'; // DIHAPUS KARENA TIDAK DIGUNAKAN LAGI
 import 'dart:async';
 import 'package:tubes_mobile/screens/kategori_sampah_screen.dart';
 import 'package:tubes_mobile/screens/leaderboard_screen.dart';
@@ -17,6 +16,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:tubes_mobile/screens/riwayat/riwayat_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tubes_mobile/utils/connectivity_checker.dart';
+import 'package:tubes_mobile/screens/request_pickup_screen.dart';
 
 import '../main.dart';
 
@@ -422,6 +422,41 @@ class _HomeScreenState extends State<HomeScreen> {
                       builder: (_) => const SetorSampahScreen(),
                     ),
                   );
+                },
+              ),
+              _buildMenuItem(
+                context: context,
+                label: "Jemput Sampah",
+                icon: FontAwesomeIcons.truck,
+                color: Colors.blue.shade700,
+                onTap: () {
+                  // Cek apakah userId sudah ada dan valid sebelum navigasi
+                  if (userId != null) {
+                    final int? parsedUserId = int.tryParse(userId!);
+                    if (parsedUserId != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (_) => RequestPickupScreen(userId: parsedUserId),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('ID Pengguna tidak valid.'),
+                        ),
+                      );
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Gagal memuat data pengguna, coba refresh.',
+                        ),
+                      ),
+                    );
+                  }
                 },
               ),
               _buildMenuItem(

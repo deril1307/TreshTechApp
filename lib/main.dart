@@ -6,10 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tubes_mobile/screens/home_screen.dart';
 import 'package:tubes_mobile/screens/loginAndRegist/login_screen.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
-// Tema Aplikasi
 class AppThemes {
-  // Warna untuk Light Theme
   static final Color _lightPrimaryColor = const Color.fromARGB(255, 7, 168, 13);
   static final Color _lightPrimaryLightColor = const Color.fromARGB(
     255,
@@ -25,22 +25,12 @@ class AppThemes {
   );
   static final Color _lightScaffoldBgColor = const Color(0xFFF0F4F8);
   static final Color _lightCardColor = Colors.white;
-  static final Color _lightTitleTextColor = Colors.green.shade900; // Teks gelap
-  static final Color _lightBodyTextColor = Colors.black.withOpacity(
-    0.75,
-  ); // Teks gelap
-  static final Color _lightSecondaryTextColor =
-      Colors.grey.shade600; // Teks abu-abu gelap
+  static final Color _lightTitleTextColor = Colors.green.shade900;
+  static final Color _lightBodyTextColor = Colors.black.withOpacity(0.75);
+  static final Color _lightSecondaryTextColor = Colors.grey.shade600;
   static final Color _lightCardShadowColor = Colors.black.withOpacity(0.06);
   static final Color _lightDividerColor = Colors.grey.shade200;
-
-  // Warna untuk Dark Theme
-  static final Color _darkPrimaryColor = const Color.fromARGB(
-    255,
-    10,
-    140,
-    15,
-  ); // Warna primer sedikit lebih terang
+  static final Color _darkPrimaryColor = const Color.fromARGB(255, 10, 140, 15);
   static final Color _darkPrimaryLightColor = const Color.fromARGB(
     255,
     50,
@@ -80,11 +70,11 @@ class AppThemes {
     appBarTheme: AppBarTheme(
       backgroundColor: _lightPrimaryColor,
       elevation: 2.0,
-      iconTheme: const IconThemeData(color: Colors.white), // Ikon AppBar putih
+      iconTheme: const IconThemeData(color: Colors.white),
       titleTextStyle: GoogleFonts.poppins(
         fontWeight: FontWeight.bold,
         fontSize: 22,
-        color: Colors.white, // Judul AppBar putih
+        color: Colors.white,
       ),
     ),
     textTheme: TextTheme(
@@ -105,7 +95,7 @@ class AppThemes {
       labelLarge: GoogleFonts.poppins(
         fontSize: 12,
         fontWeight: FontWeight.w500,
-        color: _lightTitleTextColor.withOpacity(0.9), // Teks gelap
+        color: _lightTitleTextColor.withOpacity(0.9),
       ),
     ),
     extensions: <ThemeExtension<dynamic>>[
@@ -176,7 +166,6 @@ class AppThemes {
   );
 }
 
-// Custom Theme Extension untuk warna spesifik
 @immutable
 class CustomThemeColors extends ThemeExtension<CustomThemeColors> {
   const CustomThemeColors({
@@ -240,7 +229,13 @@ class CustomThemeColors extends ThemeExtension<CustomThemeColors> {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SharedPrefs.init(); // Inisialisasi SharedPrefs Anda
-  runApp(MyApp()); // MyApp sekarang StatefulWidget
+
+  // --- PERUBAHAN 1: INISIALISASI DATE FORMATTING ---
+  // Memuat data format tanggal untuk locale 'id_ID' (Bahasa Indonesia)
+  await initializeDateFormatting('id_ID', null);
+  // --------------------------------------------------
+
+  runApp(MyApp());
 }
 
 class MyApp extends StatefulWidget {
@@ -254,9 +249,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  ThemeMode _themeMode = ThemeMode.system; // Default ke tema sistem
-  static const String _themePrefKey =
-      'theme_mode_preference'; // Kunci unik untuk SharedPreferences
+  ThemeMode _themeMode = ThemeMode.system;
+  static const String _themePrefKey = 'theme_mode_preference';
 
   @override
   void initState() {
@@ -307,34 +301,33 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'TrashTechBank', // Anda bisa menambahkan title
-      theme: AppThemes.lightTheme, // Tema untuk mode terang
-      darkTheme: AppThemes.darkTheme, // Tema untuk mode gelap
-      themeMode: _themeMode, // Mode tema yang aktif
+      title: 'TrashTechBank',
+      theme: AppThemes.lightTheme,
+      darkTheme: AppThemes.darkTheme,
+      themeMode: _themeMode,
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('id', 'ID')],
+      locale: const Locale('id', 'ID'),
       home: FutureBuilder<String?>(
         future: Future.value(
           SharedPrefs.getUserId(),
         ), // Asumsi getUserId sinkron
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(
-                  // Warna indikator akan diambil dari tema default MaterialApp sebelum tema spesifik dimuat
-                ),
-              ),
-            );
+            return Scaffold(body: Center(child: CircularProgressIndicator()));
           } else {
             if (snapshot.hasError) {
-              // Handle error jika ada, misalnya kembali ke LoginScreen
               print("Error fetching userId: ${snapshot.error}");
               return LoginScreen();
             }
-            // Jika userId null, tampilkan LoginScreen, jika tidak, tampilkan HomeScreen
             return snapshot.data == null
                 ? LoginScreen()
-                : HomeScreen(key: HomeScreen.homeScreenKey); // Pass the key
+                : HomeScreen(key: HomeScreen.homeScreenKey);
           }
         },
       ),

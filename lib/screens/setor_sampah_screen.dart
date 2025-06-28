@@ -1,10 +1,8 @@
-import 'dart:async'; // Diperlukan untuk Future BitmapDescriptor
-import 'dart:typed_data'; // Diperlukan untuk ByteData
+import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'
-    show rootBundle; // Diperlukan untuk rootBundle
-import 'dart:ui' as ui; // Diperlukan untuk ui.Codec
-
+import 'package:flutter/services.dart' show rootBundle;
+import 'dart:ui' as ui;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:tubes_mobile/utils/shared_prefs.dart';
@@ -131,17 +129,11 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
         100,
       ); // 100 adalah lebar dalam piksel
       _trashCanIcon = BitmapDescriptor.fromBytes(iconData);
-
-      // Jika Anda punya ikon berbeda untuk marker yang terpilih:
-      // final Uint8List selectedIconData = await getBytesFromAsset('assets/icons/selected_trash_can_marker.png', 120);
-      // _selectedTrashCanIcon = BitmapDescriptor.fromBytes(selectedIconData);
-      // Atau gunakan warna default jika tidak ada ikon khusus terpilih
       _selectedTrashCanIcon = BitmapDescriptor.defaultMarkerWithHue(
         BitmapDescriptor.hueAzure,
       );
     } catch (e) {
       print("Error loading custom marker icons: $e");
-      // Fallback ke default jika ikon kustom gagal dimuat
       _trashCanIcon = BitmapDescriptor.defaultMarkerWithHue(
         BitmapDescriptor.hueGreen,
       );
@@ -154,7 +146,6 @@ class _SetorSampahScreenState extends State<SetorSampahScreen> {
 
   void _generateMarkers() {
     if (_trashCanIcon == null || _selectedTrashCanIcon == null) {
-      // Jika ikon belum siap, tunggu atau gunakan default (seharusnya sudah ditangani di _loadCustomMarkers)
       print("Ikon kustom belum siap, menggunakan default sementara.");
     }
 

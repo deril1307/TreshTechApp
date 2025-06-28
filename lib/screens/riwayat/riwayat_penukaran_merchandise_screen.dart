@@ -27,10 +27,6 @@ class RiwayatPenukaran {
       imageUrl: json['image_url'] ?? '',
       tanggal:
           DateTime.tryParse(json['redemption_date'] ?? '') ?? DateTime.now(),
-
-      // --- PERBAIKAN UTAMA DI SINI ---
-      // Menggunakan int.tryParse untuk keamanan tipe data.
-      // Ini akan menangani nilai integer (100), double (100.0), atau bahkan string ("100").
       poin: int.tryParse(json['points_spent'].toString()) ?? 0,
     );
   }
